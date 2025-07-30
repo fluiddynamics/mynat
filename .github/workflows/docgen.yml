@@ -22,7 +22,7 @@ jobs:
           source: ./
           destination: ./_site
       - name: sample
-        run: ls -l && mkdir _site/sample
+        run: sudo chown runner _site && ls -l && mkdir _site/sample
       - name: Set up Lean toolchain
         uses: leanprover/lean-action@v1
         with:
