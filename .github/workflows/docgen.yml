@@ -21,6 +21,11 @@ jobs:
         with:
           source: ./
           destination: ./_site
+      - name: Set up Lean toolchain
+        uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: "mylean/docbuild"
+          build-args: "mynat:docs"
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
 
