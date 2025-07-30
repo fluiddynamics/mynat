@@ -21,13 +21,15 @@ jobs:
         with:
           source: ./
           destination: ./_site
+      - name: sample
+        run: ls -l && mkdir _site/sample
       - name: Set up Lean toolchain
         uses: leanprover/lean-action@v1
         with:
           lake-package-directory: "mylean/docbuild"
           build-args: "mynat:docs"
       - name: copy
-        run: cp -r mylean/docbuild/.lake/build/doc _site
+        run: ls -l && cp -r mylean/docbuild/.lake/build/doc _site
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
 
