@@ -1,11 +1,9 @@
 name = "mynat"
 version = "0.1.0"
-defaultTargets = []
+
+[[lean_lib]]
+name = "mynat"
 
 [[require]]
 name = "aesop"
 git = "https://github.com/leanprover-community/aesop"
-
-[[require]]
-scope = "leanprover"
-name = "doc-gen4"
