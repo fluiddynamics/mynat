@@ -510,7 +510,6 @@ induction n with
         aesop
       aesop
 
--- TODO: mod_eqで余りが0だととdividesになるという関係（自明か）
 
 -- 7.ユークリッド
 
@@ -612,338 +611,23 @@ apply (lt_le_succ _ _).2
 apply le_nat_mynat.2
 aesop
 
-def gcd (n:MyNat) (m:{z:MyNat // zero<z }) :MyNat := by
-generalize h : n%m = a
-match a with
-| zero   => exact m.val
-| succ b => exact gcd m ⟨n%m, by aesop⟩
+def gcd (n m:MyNat) :MyNat := by
+generalize eq :m=mm
+match m with
+| zero => exact n
+| succ _ => exact gcd m (n%m)
 termination_by toNat m
 decreasing_by
-  apply lt_nat_mynat.1
-  apply mod_lt
-  have mp := m.property
-  have z : zero=0 := by aesop
-  rewrite [<-z]
-  aesop
+case _ a =>
+rewrite [<-eq]
+apply lt_nat_mynat.1
+apply mod_lt
+apply (lt_le_succ _ _).2
+unfold le
+exists a
 
-#eval (gcd 15 ⟨20,by
-have a:20=succ 19 := by aesop
-rewrite [a]
-aesop⟩)
-#eval (gcd 8 ⟨20,by
-have a:20=succ 19 := by aesop
-rewrite [a]
-aesop⟩)
-
-def euclid (n:MyNat) (m:{z:MyNat // zero<z }) :List MyNat := by
-generalize h : n%m = a
-match a with
-| zero   => exact [m.val]
-| succ b => exact m.val :: euclid m ⟨n%m, by aesop⟩
-termination_by toNat m
-decreasing_by
-  apply lt_nat_mynat.1
-  apply mod_lt
-  have mp := m.property
-  have z : zero=0 := by aesop
-  rewrite [<-z]
-  aesop
-
-#eval (euclid 15 ⟨20,by
-have a:20=succ 19 := by aesop
-rewrite [a]
-aesop⟩)
-#eval (euclid 34 ⟨21,by
-have a:21=succ 20 := by aesop
-rewrite [a]
-aesop⟩)
-
-theorem euclid_1 {n m} : exists l ls, euclid n m = List.cons l ls:= by
-generalize h : n%m = a
-match a with
-| zero   =>
-exists m.val
-exists []
-unfold euclid
-aesop
-| succ k =>
-exists m.val
-unfold euclid
-exists euclid m ⟨n%m, by aesop⟩
-split
-aesop
-aesop
-
-@[aesop safe]
-theorem euclid_ne_nil : Not (euclid n m = []) := by
-unfold Not
-intros a
-replace b := @euclid_1 n m
-cases b with
-|intro w h => cases h with
-|intro ww hh =>
-rewrite [a] at hh
-aesop
-
-theorem getl : forall a:MyNat, [a].getLast? = some a := by aesop
-
-theorem getla : t ≠ [] -> (h::t).getLast? = t.getLast? := by
-{
-  induction t with
-  |nil => aesop
-  |cons tail a tail_ih=>
-    intros b
-    unfold List.getLast?
-    simp
-}
-
-theorem getlas (ls:List MyNat) (h:ls ≠ []) : ls.getLast? = some (ls.getLast h) := by
-induction ls with
-|nil => aesop
-|cons hh t ih=>
-unfold List.getLast?
-split
-{
-case h_1 heq=> aesop
-}
-{
-  case h_2 heq=>
-  injection heq with h_Eq tail_eq
-  rewrite [<-tail_eq]
-  aesop
-}
-
-theorem gcd_euclid : gcd n m = (euclid n m).getLast
- (by apply euclid_ne_nil) := by
-have z:forall ls a b, ls = euclid a b -> ls.getLast? = some (gcd a b) := by
-{
-  intros ls
-  induction ls with
-  |nil =>
-  {
-    intros a b h
-    exfalso
-    symm at h
-    apply euclid_ne_nil h
-  }
-  |cons head tail ih=>
-  {
-    intros a b h
-    unfold euclid at h
-    unfold gcd
-    split at *
-    {
-    case h_1 z x=>
-      split
-      rewrite [h]
-      apply getl
-      case h_2 zz=>aesop
-    }
-    {
-    case h_2 jj jjj=>
-      injection h with head_eq tail_eq
-      replace ih := ih _ _ tail_eq
-      split
-      case h_1 hh hhh=>
-        exfalso
-        aesop
-      case h_2 hh hhh =>
-        rewrite [<-ih]
-        apply getla
-        aesop
-    }
-  }
-}
-replace z := z (n.euclid m) n m
-symm
-have zz : n.euclid m = n.euclid m := by aesop
-replace z := z zz
-replace y := getlas (n.euclid m) (euclid_ne_nil)
-rewrite [z] at y
-injection y with val_eq
-aesop
-
-
--- Mathlib/Data/List/Defs.lean参照
-@[simp]
-def Forall (p : α → Prop) : List α → Prop
-  | [] => True
-  | x :: l => p x ∧ Forall p l
-
-theorem Forall_1 {P Q:α → Prop}: (forall e, P e -> Q e) -> forall l, Forall P l -> Forall Q l := by
-intros a
-intros l
-induction l with
-| nil => aesop
-| cons x z ih=>
-  intros b
-  unfold Forall at b
-  unfold Forall
-  rcases b with ⟨p, q⟩
-  constructor
-  apply a
-  apply p
-  apply ih
-  apply q
-
-theorem Forall_2 (P:MyNat -> Prop) ls (h:ls ≠ []): Forall P ls -> P (List.getLast ls h):= by
-induction ls with
-|nil =>
-exfalso
-aesop
-|cons hh t ih =>
-intros a
-unfold Forall at a
-unfold List.getLast
-split
-{
-  exfalso
-  aesop
-}
-{
-  case h_2 heq heq2 b c =>
-  injection b with head_eq tail_eq
-  aesop
-}
-{
-  case h_3 heq heq2 x as q qq=>
-  injection q with head_eq tail_eq
-  have z : P (t.getLast (by aesop)) := by
-    apply ih
-    aesop
-  have y : t.getLast (by aesop) = (heq2::x).getLast (by aesop) := by
-    aesop
-  rewrite [<-y]
-  apply z
-}
-
-
-theorem bezout (ls:List MyNat) :
-  forall a :MyNat, forall b:{z:MyNat // zero<z },
-    ls = euclid a b ->
-      Forall (fun e:MyNat => exists (p q r s:MyNat),
-        p*a + q*b = (r*a+s*b) + e) ls := by
-induction ls with
-| nil => {
-  intros a b c
-  exfalso
-  replace x := @euclid_1 a b
-  cases x with
-  | intro w h => cases h with
-  | intro ww hh => aesop
-}
-| cons head tail ih =>
-intros aa bb cc
-unfold euclid at cc
-split at cc
-case _ _ =>
-  have s : tail = [] := by aesop
-  {
-  have ss : head = bb.val := by aesop
-  rewrite [s]
-  rewrite [ss]
-  simp
-  exists zero
-  exists zero.succ
-  exists zero
-  exists zero
-  simp }
-case h_2 heq eq2 _ _ h hh=>
-  injection cc with head_eq tail_eq
-  replace ih := ih _ _ tail_eq
-  cases mod_eq aa bb.val with|intro w h =>
-  rewrite [<-h]
-  unfold Forall
-  constructor
-  rewrite [head_eq]
-  unfold Forall at ih
-  split at ih
-  {
-  exfalso
-  symm at tail_eq
-  apply euclid_ne_nil tail_eq
-  }
-  {
-    exists zero
-    exists zero.succ
-    exists zero
-    exists zero
-    aesop
-  }
-  have z: forall e,(∃ p q r s, p * bb + q * aa % bb = (r * bb + s * aa % bb) + e) ->
-                    ∃ p q r s, p * (w * bb + aa % bb) + q * bb = (r * (w * bb + aa % bb) + s * bb) + e := by
-    intros e a
-    rcases a with ⟨p, q, r, s, h_prop⟩
-    exists q
-    exists p+s*w
-    exists s
-    exists r+q*w
-    have z1 : q * (w * bb.val + aa % bb.val) + (p + s * w) * bb.val = (p*bb.val + q *aa%bb.val) + (q*w +s*w)*bb.val
-             := by
-      rewrite [mul_dist]
-      rewrite [add_comm]
-      rewrite [mul_comm]
-      rewrite [mul_dist]
-      rewrite [add_comm]
-      rewrite [add_assoc]
-      rewrite [add_comm]
-      symm
-      rewrite [add_comm]
-      rewrite [mul_comm]
-      rewrite [mul_dist]
-      rewrite [<-add_assoc]
-      rewrite [add_comm]
-      rewrite [<-add_assoc]
-      apply add_abac.2
-      rewrite [add_comm]
-      symm
-      rewrite [<-add_assoc]
-      rewrite [mul_assoc]
-      rewrite [mul_comm]
-      apply add_abac.2
-      rewrite [add_comm]
-      rw [mul_comm]
-    rewrite [z1]
-    rewrite [h_prop]
-    rewrite [<-add_assoc]
-    rewrite [<-add_assoc]
-    symm
-    rewrite [<-add_assoc]
-    rewrite [add_comm]
-    rewrite [mul_comm]
-    rewrite [mul_dist]
-    rewrite [<-add_assoc]
-    rewrite [<-add_assoc]
-    rewrite [mul_comm]
-    apply add_abac.2
-    symm
-    rewrite [add_comm]
-    rewrite [<-add_assoc]
-    rewrite [add_comm]
-    rewrite [mul_comm]
-    rewrite [mul_dist]
-    rewrite [<-add_assoc]
-    rewrite [<-add_assoc]
-    apply add_abac.2
-    rewrite [add_assoc]
-    rewrite [add_comm]
-    apply add_abac.2
-    symm
-    rewrite [mul_dist]
-    rewrite [mul_assoc]
-    rewrite [mul_comm]
-    apply add_abac.2
-    rfl
-  apply Forall_1
-  apply z
-  apply ih
-
-theorem gcd_linear a (b:{z:MyNat // zero<z }) : exists (p q r s:MyNat),
-  p*a+q*b = (r*a+s*b) + (gcd a b) := by
-have c := bezout (euclid a b) a b (by aesop)
-replace c:= Forall_2 _ (euclid a b) euclid_ne_nil c
-rewrite [gcd_euclid]
-aesop
+#eval (gcd 15 20)
+#eval (gcd 8 20)
 
 theorem ind_mynat1 (P:MyNat -> Prop) :
   (forall n, (forall k, k<n -> P k) -> P n) -> (forall n, forall k, k<=n -> P k) := by
@@ -1032,68 +716,23 @@ def posmy := { z // zero < z }
 theorem zero0 : zero = 0:=by
 aesop
 
-theorem comdiv_gcd : forall b,forall a d, d ∣ a -> d ∣ b.val -> d ∣ (gcd a b) := by
-{
-  generalize eq : (fun x => forall d a, forall (p:zero<x),d ∣ a -> d ∣ x -> d ∣ (gcd a ⟨x,p⟩)) = P
-  have ind := ind_mynat P
-  have ind1 : ∀ (n : MyNat), (∀ (k : MyNat), k < n → P k) -> P n:= by
-    intros n a
-    rewrite [<-eq]
-    have z : ∀ (d a : MyNat) (p : zero < n), d ∣ a → d ∣ n → d ∣ a.gcd ⟨n, p⟩ := by
-      unfold gcd
-      intros h1 h2 h3 h4 h5
-      split
-      {
-        case h_1 j1 j2 j3 j4 =>
-        apply h5
-      }
-      {
-        case h_2 j1 j2 j3 j4 j5 j6=>
-        have d1 : h1 ∣ h2%n := by
-          replace me := mod_eq h2 n
-          cases me
-          case intro meq mec=>
-          have e2 : h1∣meq*n := by
-            unfold divides at h5
-            cases h5
-            case intro h5c h5eq =>
-            rewrite [<-h5eq]
-            rewrite [mul_comm]
-            rewrite [<-mul_assoc]
-            simp
-          apply divides_elim mec
-          apply e2
-          apply h4
-        have p1 : P (h2%n) := by
-          apply a
-          apply mod_lt
-          rewrite [zero0] at h3
-          apply h3
-        rewrite [<-eq] at p1
-        replace p1 := p1 h1 n
-        have p2:zero<h2%n :=by
-          {
-          rewrite [j4]
-          apply (lt_le_succ zero j3.succ).2
-          unfold le
-          exists j3
-          }
-        apply p1 p2 h5 d1
-      }
-    apply z
-  replace ind1 := ind_mynat P ind1
-  rewrite [<-eq] at ind1
-  intro b
-  replace ind1 := ind1 b
-  change (∀ (d a : MyNat) (p : zero < b.val), d ∣ a → d ∣ b.val → d ∣ a.gcd ⟨b.val, p⟩) at ind1
-  intro a d
-  replace ind1 := ind1 d a b.property
-  apply ind1
-}
-
+@[aesop unsafe]
 theorem succ_le (a:MyNat) : a < a.succ := by
 apply (lt_le_succ _ _).2
 apply le_refl
+
+@[aesop unsafe]
+theorem zero_lt_succ (a:MyNat) : zero < a.succ := by
+apply (lt_le_succ _ _).2
+unfold le
+exists a
+
+theorem gcd_linear a b: exists (p q r s:MyNat),
+  p*a+q*b = (r*a+s*b) + (gcd a b) :=
+sorry
+
+theorem gcd_greatest : forall b,forall a d, d ∣ a -> d ∣ b -> d ∣ (gcd a b) := by
+sorry
 
 theorem mod_le : a < b -> a%b = a := by
 {
@@ -1129,209 +768,143 @@ theorem mod_le : a < b -> a%b = a := by
   }
 }
 
-theorem mod_aa : forall a:{z : MyNat // zero<z}, a%a = zero := by
+theorem mod_aa {a} : a%a = zero := by
 {
-  intros a
-  cases a.val
-  simp
-  case succ b =>
-  have z : b%b.succ = b := by
-    apply mod_le
-    apply succ_le
   unfold mod
-  rewrite [z]
-  have xx : forall p:MyNat, p=p := by aesop
-  have x := (eq_dec1 b.succ b.succ).2 (xx _)
-  rewrite [x]
-  simp
+  split
+  {
+    case h_1 =>
+    rfl
+  }
+  {
+    case h_2 n x=>
+    have z : x%x.succ = x := by
+      apply mod_le
+      apply succ_le
+    rewrite [z]
+    split
+    rfl
+    case h_2 heq =>
+    exfalso
+    have heq2 := (eq_dec1 x.succ x.succ).2
+    aesop
+  }
 }
 
-theorem gcd_aa : forall a:{z : MyNat // zero<z}, gcd a a = a := by
+theorem gcd_aa : forall a:MyNat, gcd a a = a := by
 {
   intros a
   unfold gcd
-  have eq := mod_aa a
   split
-  rfl
-  case h_2 h hh b bb=>
-  have zz := mod_aa a
-  rewrite [zz] at hh
-  exfalso
-  aesop
-}
-
-theorem gcd_comm : forall a b:{z : MyNat // zero<z}, gcd a b = gcd b a:= by
-{
-  have d : forall c d:{z : MyNat // zero<z}, c<=d -> gcd c d = gcd d c := by
-    intros c d h
-    by_cases hh: c=d
-    rewrite [hh]
-    rewrite [gcd_aa]
-    rfl
-    have z : c<d := by
-      unfold lt
-      constructor
-      apply h
-      unfold Not
-      intros x
-      unfold Not at hh
-      apply hh
-      aesop
-    have z := mod_le z
-    unfold gcd
-    split
-    {
-      case h_1 l _ _ ll _ _=>
-      rewrite [z] at ll
-      exfalso
-      have z := c.property
-      rewrite [ll] at z
-      aesop
-    }
-    {
-      case h_2 v s _ _=>
-      conv =>
-        lhs
-        unfold gcd
-      simp
-      have vvv:zero<c%d := by
-        rewrite [s]
-        aesop
-      conv =>
-        lhs
-        pattern (gcd _)
-        rewrite [z]
-      conv =>
-        lhs
-        pattern (c%d)
-        rewrite [z]
-      conv =>
-        lhs
-        pattern (c%d)
-        rewrite [z]
-      split
-      aesop
-      case h_2 b heq _ _ =>
-      conv at heq =>
-        lhs
-        pattern (c%d)
-        rewrite [z]
-      split
-      {
-        case h_1 heq2 _ _ =>
-        rewrite [heq2] at heq
-        exfalso
-        simp at heq
-      }
-      {
-        case h_2 =>
-        simp
-      }
-    }
-  intros a b
-  have tot := le_total a b
-  cases tot
   {
-    case inl h=>
-    apply d _ _ h
+    case h_1 b c =>
+    rfl
   }
   {
-    case inr h =>
-    have d:= d b a h
-    symm
-    apply d
+    case h_2 b c m=>
+    rewrite [<-m]
+    rewrite [mod_aa]
+    unfold gcd
+    rfl
   }
 }
 
 theorem gcd_divides_a_and_b : forall b, forall a, (gcd a b) ∣ a  ∧ gcd a b ∣ b:= by
 {
-  have l1 : forall b, forall z:zero<b, forall a, gcd a ⟨b,z⟩ ∣ a ∧ gcd a ⟨b,z⟩ ∣ b:= by
-    apply ind_mynat
-    intros c d e f
+  apply ind_mynat
+  intros a b c
+  constructor
+  unfold gcd
+  split
+  {
+    case h_1 =>
+    aesop
+  }
+  {
+    case h_2 eq a m=>
+    generalize eq:c%a.succ = z
+    have b := b (c%a.succ)
+    have d := mod_lt c a.succ ?_
+    have b := b d a.succ
+    rewrite [eq] at b
+    have f := mod_eq c a.succ
+    cases f
+    {
+      case intro h w =>
+      rewrite [eq] at w
+      cases b
+      case intro left right =>
+      unfold divides at right
+      cases right
+      case intro h h1 h2=>
+      cases left
+      case intro hh hh1 hh2=>
+      rewrite [<-w]
+      conv =>
+        rhs
+        rewrite [<-hh2]
+      unfold divides
+      generalize eq2 : a.succ.gcd z = k
+      rewrite [<-h2]
+      rewrite [eq2]
+      exists h*hh1 + h1
+      rewrite [mul_dist]
+      rewrite [mul_comm]
+      rewrite [<-mul_assoc]
+      conv =>
+        lhs
+        pattern hh1*k
+        rewrite [mul_comm]
+    }
+    {
+      case refine_1 =>
+      apply (lt_le_succ _ _).2
+      unfold le
+      exists a
+    }
+  }
+  {
     unfold gcd
     split
     {
-      case h_1 h _=>
-      have meq := mod_eq f c
-      cases meq
-      case intro w meq_p=>
-      rewrite [h] at meq_p
-      simp at meq_p
-      unfold divides
-      constructor
-      exists w
-      rw [mul_comm]
-      rw [meq_p]
-      exists zero.succ
-      aesop
+      case h_1  eq m=>
+      apply all_divides_zero
     }
     {
-      case h_2 a h b h _ _=>
-      have hz : 0<c := by
-        rewrite [<-zero0]
-        apply e
-      have fcz : zero<f%c := by aesop
-      have d := d (f%c) (mod_lt f c hz) fcz c
-      cases d
-      case intro left right =>
-      constructor
-      {
-        have meq := mod_eq f c
-        cases meq
-        case intro cc ccc  =>
-        generalize hh : c.gcd ⟨f % c, fcz⟩ = g
-        rewrite [hh] at left
-        rewrite [hh] at right
-        unfold divides at right
-        unfold divides at left
-        cases right
-        case intro rk rp =>
-        cases left
-        case intro lk lp =>
-        unfold divides
-        rewrite [<-ccc]
-        rewrite [<-rp]
-        rewrite [<-lp]
-        exists cc*lk+rk
-        rewrite [mul_dist]
-        rewrite [mul_comm]
-        rewrite [<-mul_assoc]
-        conv =>
-          lhs
-          pattern (lk*g)
-          rewrite [mul_comm]
-      }
-      {
-        apply left
-      }
+      case h_2 eq a m=>
+      apply (b (c%a.succ) ?_ a.succ).1
+      apply mod_lt
+      apply (lt_le_succ _ _).2
+      unfold le
+      exists a
     }
-  intros
-  apply l1
+  }
 }
 
-def MyPos := {z : MyNat // zero<z}
-@[simp]
-def divides' (d n:MyPos) := exists k, d.val * k = n.val
-infix:50 " ∣ " => divides'
+theorem gcd_unique {a b:MyNat}: forall g1 g2,
+  g1 ∣ a ∧ g2 ∣ a ∧ g1 ∣ b ∧ g2 ∣ b ->
+  (forall d, d∣a ∧ d∣b -> d∣g1) ->
+  (forall d, d∣a ∧ d∣b -> d∣g2) ->
+  g1=g2 := by
+intros c d e f g
+apply divides_assym
+aesop
+aesop
 
-def gcd' (a b:MyPos) :MyPos :=  ⟨gcd a.val b, by
-{
-  unfold lt
-  constructor
-  aesop
-  unfold Not
-  intros h
-  have z := (gcd_divides_a_and_b b a.val).left
-  rewrite [<-h] at z
-  have x := zero_divides_only_zero a.val z
-  have xx := a.property
-  rewrite [x] at xx
-  rewrite [zero0] at xx
-  aesop
-}⟩
+theorem gcd_comm : forall a b, gcd a b = gcd b a:= by
+intros a b
+apply @gcd_unique a b
+have z := gcd_divides_a_and_b a b
+have zz := gcd_divides_a_and_b b a
+aesop
+intros d d1
+apply gcd_greatest b a d d1.1 d1.2
+intros d d1
+apply gcd_greatest a b d d1.2 d1.1
 
-theorem gcd_assoc (a b c:MyPos) : gcd' a (gcd' b c) = gcd' (gcd' a b) c:= by
-have da := divides_assym (gcd' a (gcd' b c)).val (gcd' (gcd' a b) c).val
+
+theorem gcd_assoc a b c : gcd a (gcd b c) = gcd (gcd a b) c:= by
+have da := divides_assym (gcd a (gcd b c)).val (gcd (gcd a b) c).val
 have aa : gcd' a (gcd' b c) ∣ a:= by
   apply (gcd_divides_a_and_b _ _).1
 have bb : gcd' a (gcd' b c) ∣ b:= by
