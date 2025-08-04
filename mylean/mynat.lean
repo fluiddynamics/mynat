@@ -727,12 +727,128 @@ apply (lt_le_succ _ _).2
 unfold le
 exists a
 
-theorem gcd_linear a b: exists (p q r s:MyNat),
-  p*a+q*b = (r*a+s*b) + (gcd a b) :=
-sorry
+theorem gcd_linear : forall b a,exists (p q r s:MyNat), p*a+q*b = (r*a+s*b) + (gcd a b) := by
+apply ind_mynat
+intros n ih
+unfold gcd
+intro a
+split
+exists zero.succ
+exists zero
+exists zero
+exists zero
+simp
+{
+  {
+    case h_2 eq aa m =>
+    have ih := ih (a%aa.succ) ?_ aa.succ
+    {
+      rewrite [<-m] at *
+      cases mod_eq a eq
+      case intro h w =>
+      rcases ih with ⟨p',q',r',s',t⟩
+      exists q'
+      exists p' + s'*h
+      exists s'
+      exists r'+q'*h
+      conv =>
+        lhs
+        rewrite [<-w]
+      conv =>
+        rhs
+        pattern s'*a
+        rewrite [<-w]
+      rewrite [mul_dist]
+      rewrite [add_comm]
+      rewrite [mul_comm]
+      rewrite [mul_dist]
+      rewrite [<-add_assoc]
+      rewrite [mul_comm]
+      rewrite [add_assoc]
+      rewrite [add_assoc]
+      rewrite [add_comm]
+      rewrite [add_assoc]
+      rewrite [add_assoc]
+      rewrite [add_comm] at t
+      rewrite [t]
+      rewrite [<-add_assoc]
+      rewrite [<-add_assoc]
+      rewrite [add_comm]
+      rewrite [<-add_assoc]
+      symm
+      rewrite [add_comm]
+      apply add_abac.2
+      rewrite [mul_dist]
+      rewrite [<-add_assoc]
+      symm
+      rewrite [<-add_assoc]
+      rewrite [mul_comm]
+      rewrite [<-mul_assoc]
+      apply add_abac.2
+      symm
+      rewrite [add_comm]
+      rewrite [mul_comm]
+      rewrite [mul_dist]
+      rewrite [<-add_assoc]
+      rewrite [add_comm]
+      rewrite [<-add_assoc]
+      rewrite [mul_comm]
+      rewrite [mul_assoc]
+      apply add_abac.2
+      rewrite [add_comm]
+      rewrite [mul_comm]
+      apply add_abac.2
+      rfl
+    }
+    apply mod_lt
+    apply zero_lt_succ
+  }
+}
 
 theorem gcd_greatest : forall b,forall a d, d ∣ a -> d ∣ b -> d ∣ (gcd a b) := by
-sorry
+intros a b c d e
+have z := gcd_linear a b
+rcases d with ⟨dd,ddd⟩
+rcases e with ⟨ee,eee⟩
+rcases z with ⟨p',q',r',s',t⟩
+symm at t
+apply divides_elim t
+rewrite [<-ddd]
+rewrite [<-eee]
+unfold divides
+exists r'*dd+s'*ee
+rewrite [mul_dist]
+conv =>
+  pattern r'*dd
+  rewrite [mul_comm]
+rewrite [mul_assoc]
+rewrite [mul_comm]
+apply add_abac.2
+conv =>
+  pattern c*ee
+  rewrite [mul_comm]
+rewrite [mul_comm]
+rewrite [mul_assoc]
+rfl
+rewrite [<-ddd]
+rewrite [<-eee]
+unfold divides
+exists p'*dd+q'*ee
+symm
+rewrite [mul_comm]
+rewrite [<-mul_assoc]
+rewrite [add_comm]
+rewrite [mul_comm]
+rewrite [<-mul_assoc]
+rewrite [<-mul_dist]
+conv =>
+  pattern ee*q'
+  rewrite [mul_comm]
+conv =>
+  pattern dd*p'
+  rewrite [mul_comm]
+aesop
+
 
 theorem mod_le : a < b -> a%b = a := by
 {
@@ -904,34 +1020,34 @@ apply gcd_greatest a b d d1.2 d1.1
 
 
 theorem gcd_assoc a b c : gcd a (gcd b c) = gcd (gcd a b) c:= by
-have da := divides_assym (gcd a (gcd b c)).val (gcd (gcd a b) c).val
-have aa : gcd' a (gcd' b c) ∣ a:= by
+have da := divides_assym (gcd a (gcd b c)) (gcd (gcd a b) c)
+have aa : gcd a (gcd b c) ∣ a:= by
   apply (gcd_divides_a_and_b _ _).1
-have bb : gcd' a (gcd' b c) ∣ b:= by
-  have l1 := (gcd_divides_a_and_b (gcd' b c) a.val).2
+have bb : gcd a (gcd b c) ∣ b:= by
+  have l1 := (gcd_divides_a_and_b (gcd b c) a).2
   apply divides_trans
   apply l1
-  apply (gcd_divides_a_and_b c b.val).1
-have cc : gcd' a (gcd' b c) ∣ c:= by
-  have l1 := (gcd_divides_a_and_b (gcd' b c) a.val).2
+  apply (gcd_divides_a_and_b c b).1
+have cc : gcd a (gcd b c) ∣ c:= by
+  have l1 := (gcd_divides_a_and_b (gcd b c) a).2
   apply divides_trans
   apply l1
-  apply (gcd_divides_a_and_b c b.val).2
-have aaa : (gcd' (gcd' a b) c) ∣ a:= by
-  have l1 := (gcd_divides_a_and_b (gcd' a b) c.val).2
+  apply (gcd_divides_a_and_b c b).2
+have aaa : (gcd (gcd a b) c) ∣ a:= by
+  have l1 := (gcd_divides_a_and_b (gcd a b) c).2
   apply divides_trans
   apply (gcd_divides_a_and_b _ _).1
-  apply (gcd_divides_a_and_b b a.val).1
-have bbb : (gcd' (gcd' a b) c) ∣ b:= by
-  have l1 := (gcd_divides_a_and_b (gcd' a b) c.val).2
+  apply (gcd_divides_a_and_b b a).1
+have bbb : (gcd (gcd a b) c) ∣ b:= by
+  have l1 := (gcd_divides_a_and_b (gcd a b) c).2
   apply divides_trans
   apply (gcd_divides_a_and_b _ _).1
-  apply (gcd_divides_a_and_b b a.val).2
-have ccc : (gcd' (gcd' a b) c) ∣ c:= by
+  apply (gcd_divides_a_and_b b a).2
+have ccc : (gcd (gcd a b) c) ∣ c:= by
     apply (gcd_divides_a_and_b _ _).2
-have z1 : (gcd' a (gcd' b c)).val ∣ (gcd' (gcd' a b) c).val := by
-  apply comdiv_gcd
-  apply comdiv_gcd
+have z1 : gcd a (gcd b c) ∣ (gcd (gcd a b) c) := by
+  apply gcd_greatest
+  apply gcd_greatest
   apply (gcd_divides_a_and_b _ _).1
   apply divides_trans
   apply (gcd_divides_a_and_b _ _).2
@@ -939,18 +1055,17 @@ have z1 : (gcd' a (gcd' b c)).val ∣ (gcd' (gcd' a b) c).val := by
   apply divides_trans
   apply (gcd_divides_a_and_b _ _).2
   apply (gcd_divides_a_and_b _ _).2
-have z2 : (gcd' (gcd' a b) c).val ∣ (gcd' a (gcd' b c)).val := by
-  apply comdiv_gcd
+have z2 : gcd (gcd a b) c ∣ gcd a (gcd b c) := by
+  apply gcd_greatest
   apply divides_trans
   apply (gcd_divides_a_and_b _ _).1
   apply (gcd_divides_a_and_b _ _).1
-  apply comdiv_gcd
+  apply gcd_greatest
   apply divides_trans
   apply (gcd_divides_a_and_b _ _).1
   apply (gcd_divides_a_and_b _ _).2
   apply (gcd_divides_a_and_b _ _).2
-have da1 := da z1 z2
-apply Subtype.ext da1
+apply da z1 z2
 
 -- 8.素数
 
@@ -965,62 +1080,54 @@ have z:zero<p := by
   cases c
   case intro l _ =>
   aesop
-have z := gcd_linear a ⟨p,z⟩
+have z := gcd_linear a p
 rcases z with ⟨pp,q,r,s,t⟩
-have y := (gcd_divides_a_and_b ⟨p,z⟩ a).2
+have y := (gcd_divides_a_and_b p a).2
 unfold is_prime at c
 rcases c with ⟨_,kk⟩
-have kk := kk (a.gcd ⟨p, z⟩) y
+have kk := kk (a.gcd p) y
 cases kk
 {
   case inl h=>
   right
+  rewrite [gcd_comm] at t
   rewrite [h] at t
-  have mmn : forall m n:MyNat, m=n -> m*b=n*b := by aesop
+  have mmn : forall m n:MyNat, m=n -> b*m=b*n := by aesop
   have mmn := mmn _ _ t
   cases d
-  case intro w h =>
-  have m := mmn
-  rewrite [mul_comm] at m
-  rewrite [mul_dist] at m
-  rewrite [mul_comm] at m
-  rewrite [<-mul_assoc] at m
-  rewrite [mul_comm] at m
-  rewrite [<-h] at m
-  rewrite [<-mul_assoc] at m
-  rewrite [add_comm] at m
-  rewrite [mul_assoc] at m
-  rewrite [mul_comm] at m
-  rewrite [<-mul_dist] at m
-  symm at m
-  rewrite [mul_comm] at m
-  rewrite [mul_dist] at m
-  rewrite [mul_dist] at m
-  rewrite [mul_comm] at m
-  rewrite [<-mul_assoc] at m
-  rewrite [<-h] at m
-  rewrite [mul_comm] at m
-  rewrite [<-mul_assoc] at m
-  rewrite [add_comm] at m
-  rewrite [add_assoc] at m
-  rewrite [add_comm] at m
-  rewrite [mul_assoc] at m
-  rewrite [mul_comm] at m
-  rewrite [add_assoc] at m
-  rewrite [add_comm] at m
-  rewrite [add_assoc] at m
-  rewrite [<-mul_dist] at m
-  have q1:b*zero.succ=b := by aesop
-  rewrite[q1] at m
-  apply divides_elim
-  apply m
-  exists w*r+b*s
-  exists b*q+w*pp
-}
+  case intro w h hh hhhh=>
+  rewrite [mul_dist] at mmn
+  rewrite [mul_dist] at mmn
+  rewrite [mul_dist] at mmn
+  rewrite [mul_assoc] at mmn
+  rewrite [mul_comm] at mmn
+  rewrite [add_comm] at mmn
+  rewrite [mul_comm] at mmn
+  rewrite [<-mul_assoc] at mmn
+  rewrite [<-hhhh] at mmn
+  rewrite [mul_comm] at mmn
+  rewrite [<-mul_assoc] at mmn
+  rewrite [<-mul_dist] at mmn
+  symm at mmn
+  rewrite [mul_assoc] at mmn
+  rewrite [mul_comm] at mmn
+  rewrite [mul_one] at mmn
+  apply divides_elim mmn
+  exists b*r + hh*s
+  rewrite [mul_dist]
+  apply add_abac.2
+  symm
+  rewrite [mul_comm]
+  rewrite [<-mul_assoc]
+  rewrite [<-hhhh]
+  rewrite [mul_comm]
+  rw [<-mul_assoc]
+  exists hh*q+b*pp
+  }
 {
   case inr h =>
   left
-  have y := (gcd_divides_a_and_b ⟨p,z⟩ a).1
+  have y := (gcd_divides_a_and_b p a).1
   rw [h] at y
   apply y
 }
