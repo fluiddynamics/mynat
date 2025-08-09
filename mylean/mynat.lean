@@ -482,19 +482,19 @@ cases n with
 
 @[simp]
 def divides (d n:MyNat) := exists k, d * k = n
-infix:50 " My∣ " => divides
+infix:50(priority:=2000) " ∣ " => divides
 
-theorem zero_divides_only_zero n : zero My∣ n -> n=0 := by
+theorem zero_divides_only_zero n : zero ∣ n -> n=0 := by
 intros a
 cases a with
 | intro w h
 aesop
 
-theorem all_divides_zero d : d My∣ zero := by
+theorem all_divides_zero d : d ∣ zero := by
 simp
 exists zero
 
-theorem divides_trans (d n m:MyNat) : d My∣ n -> n My∣ m -> d My∣ m := by
+theorem divides_trans (d n m:MyNat) : d ∣ n -> n ∣ m -> d ∣ m := by
 intros a b
 simp at a
 simp at b
@@ -504,7 +504,7 @@ rewrite [<-zz] at yy
 rewrite [mul_assoc] at yy
 exists z*y
 
-theorem divides_assym (n m:MyNat) : n My∣ m -> m My∣ n -> n=m := by
+theorem divides_assym (n m:MyNat) : n ∣ m -> m ∣ n -> n=m := by
 intros a b
 simp at a
 simp at b
@@ -564,7 +564,7 @@ cases t
   aesop
 }
 
-theorem divides_elim {a b c d:MyNat} :a+b=c -> d My∣a -> d My∣c ->  d My∣b := by
+theorem divides_elim {a b c d:MyNat} :a+b=c -> d ∣a -> d ∣c ->  d ∣b := by
   intros q w e
   unfold divides at w
   unfold divides at e
@@ -959,7 +959,7 @@ simp
   }
 }
 
-theorem gcd_greatest : forall b,forall a d, d My∣ a -> d My∣ b -> d My∣ (gcd a b) := by
+theorem gcd_greatest : forall b,forall a d, d ∣ a -> d ∣ b -> d ∣ (gcd a b) := by
 intros a b c d e
 have z := gcd_linear a b
 rcases d with ⟨dd,ddd⟩
@@ -1066,7 +1066,7 @@ theorem gcd_aa : forall a:MyNat, gcd a a = a := by
   }
 }
 
-theorem gcd_divides_a_and_b : forall b, forall a, (gcd a b) My∣ a  ∧ gcd a b My∣ b:= by
+theorem gcd_divides_a_and_b : forall b, forall a, (gcd a b) ∣ a  ∧ gcd a b ∣ b:= by
 {
   apply ind_mynat
   intros a b c
@@ -1133,9 +1133,9 @@ theorem gcd_divides_a_and_b : forall b, forall a, (gcd a b) My∣ a  ∧ gcd a b
 }
 
 theorem gcd_unique {a b:MyNat}: forall g1 g2,
-  g1 My∣ a ∧ g2 My∣ a ∧ g1 My∣ b ∧ g2 My∣ b ->
-  (forall d, d My∣ a ∧ d My∣b -> d My∣ g1) ->
-  (forall d, d My∣ a ∧ d My∣b -> d My∣ g2) ->
+  g1 ∣ a ∧ g2 ∣ a ∧ g1 ∣ b ∧ g2 ∣ b ->
+  (forall d, d ∣ a ∧ d ∣b -> d ∣ g1) ->
+  (forall d, d ∣ a ∧ d ∣b -> d ∣ g2) ->
   g1=g2 := by
 intros c d e f g
 apply divides_assym
@@ -1163,31 +1163,31 @@ aesop
 
 theorem gcd_assoc a b c : gcd a (gcd b c) = gcd (gcd a b) c:= by
 have da := divides_assym (gcd a (gcd b c)) (gcd (gcd a b) c)
-have aa : gcd a (gcd b c) My∣ a:= by
+have aa : gcd a (gcd b c) ∣ a:= by
   apply (gcd_divides_a_and_b _ _).1
-have bb : gcd a (gcd b c) My∣ b:= by
+have bb : gcd a (gcd b c) ∣ b:= by
   have l1 := (gcd_divides_a_and_b (gcd b c) a).2
   apply divides_trans
   apply l1
   apply (gcd_divides_a_and_b c b).1
-have cc : gcd a (gcd b c) My∣ c:= by
+have cc : gcd a (gcd b c) ∣ c:= by
   have l1 := (gcd_divides_a_and_b (gcd b c) a).2
   apply divides_trans
   apply l1
   apply (gcd_divides_a_and_b c b).2
-have aaa : (gcd (gcd a b) c) My∣ a:= by
+have aaa : (gcd (gcd a b) c) ∣ a:= by
   have l1 := (gcd_divides_a_and_b (gcd a b) c).2
   apply divides_trans
   apply (gcd_divides_a_and_b _ _).1
   apply (gcd_divides_a_and_b b a).1
-have bbb : (gcd (gcd a b) c) My∣ b:= by
+have bbb : (gcd (gcd a b) c) ∣ b:= by
   have l1 := (gcd_divides_a_and_b (gcd a b) c).2
   apply divides_trans
   apply (gcd_divides_a_and_b _ _).1
   apply (gcd_divides_a_and_b b a).2
-have ccc : (gcd (gcd a b) c) My∣ c:= by
+have ccc : (gcd (gcd a b) c) ∣ c:= by
     apply (gcd_divides_a_and_b _ _).2
-have z1 : gcd a (gcd b c) My∣ (gcd (gcd a b) c) := by
+have z1 : gcd a (gcd b c) ∣ (gcd (gcd a b) c) := by
   apply gcd_greatest
   apply gcd_greatest
   apply (gcd_divides_a_and_b _ _).1
@@ -1197,7 +1197,7 @@ have z1 : gcd a (gcd b c) My∣ (gcd (gcd a b) c) := by
   apply divides_trans
   apply (gcd_divides_a_and_b _ _).2
   apply (gcd_divides_a_and_b _ _).2
-have z2 : gcd (gcd a b) c My∣ gcd a (gcd b c) := by
+have z2 : gcd (gcd a b) c ∣ gcd a (gcd b c) := by
   apply gcd_greatest
   apply divides_trans
   apply (gcd_divides_a_and_b _ _).1
@@ -1211,11 +1211,11 @@ apply da z1 z2
 
 -- 8.素数
 
-def is_prime (p:MyNat) : Prop := zero.succ<p ∧ forall k, k My∣p ->  k=zero.succ ∨ k=p
+def is_prime (p:MyNat) : Prop := zero.succ<p ∧ forall k, k ∣p ->  k=zero.succ ∨ k=p
 
 -- 9. 「p|abならばp|aまたはp|b」が目標
 
-theorem pabpapb p a b : is_prime p -> p My∣ a*b -> p My∣a∨p My∣b := by
+theorem pabpapb p a b : is_prime p -> p ∣ a*b -> p ∣a∨p ∣b := by
 intros c d
 have z:zero<p := by
   unfold is_prime at c
