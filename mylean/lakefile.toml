@@ -7,3 +7,7 @@ name = "mynat"
 [[require]]
 name = "aesop"
 git = "https://github.com/leanprover-community/aesop"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
