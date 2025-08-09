@@ -1134,16 +1134,17 @@ theorem gcd_divides_a_and_b : forall b, forall a, (gcd a b) My∣ a  ∧ gcd a b
 
 theorem gcd_unique {a b:MyNat}: forall g1 g2,
   g1 My∣ a ∧ g2 My∣ a ∧ g1 My∣ b ∧ g2 My∣ b ->
-  (forall d, d My∣ a ∧ d∣b -> d My∣ g1) ->
-  (forall d, d My∣ a ∧ d∣b -> d My∣ g2) ->
+  (forall d, d My∣ a ∧ d My∣b -> d My∣ g1) ->
+  (forall d, d My∣ a ∧ d My∣b -> d My∣ g2) ->
   g1=g2 := by
 intros c d e f g
 apply divides_assym
 apply g
 aesop
 apply f
-
-
+constructor
+aesop
+aesop
 
 theorem gcd_comm : forall a b, gcd a b = gcd b a:= by
 intros a b
@@ -1151,39 +1152,42 @@ apply @gcd_unique a b
 have z := gcd_divides_a_and_b a b
 have zz := gcd_divides_a_and_b b a
 aesop
-intros d d1
-apply gcd_greatest b a d d1.1 d1.2
-intros d d1
-apply gcd_greatest a b d d1.2 d1.1
-
+intros c d
+apply gcd_greatest
+aesop
+aesop
+intros c d
+apply gcd_greatest
+aesop
+aesop
 
 theorem gcd_assoc a b c : gcd a (gcd b c) = gcd (gcd a b) c:= by
 have da := divides_assym (gcd a (gcd b c)) (gcd (gcd a b) c)
-have aa : gcd a (gcd b c) ∣ a:= by
+have aa : gcd a (gcd b c) My∣ a:= by
   apply (gcd_divides_a_and_b _ _).1
-have bb : gcd a (gcd b c) ∣ b:= by
+have bb : gcd a (gcd b c) My∣ b:= by
   have l1 := (gcd_divides_a_and_b (gcd b c) a).2
   apply divides_trans
   apply l1
   apply (gcd_divides_a_and_b c b).1
-have cc : gcd a (gcd b c) ∣ c:= by
+have cc : gcd a (gcd b c) My∣ c:= by
   have l1 := (gcd_divides_a_and_b (gcd b c) a).2
   apply divides_trans
   apply l1
   apply (gcd_divides_a_and_b c b).2
-have aaa : (gcd (gcd a b) c) ∣ a:= by
+have aaa : (gcd (gcd a b) c) My∣ a:= by
   have l1 := (gcd_divides_a_and_b (gcd a b) c).2
   apply divides_trans
   apply (gcd_divides_a_and_b _ _).1
   apply (gcd_divides_a_and_b b a).1
-have bbb : (gcd (gcd a b) c) ∣ b:= by
+have bbb : (gcd (gcd a b) c) My∣ b:= by
   have l1 := (gcd_divides_a_and_b (gcd a b) c).2
   apply divides_trans
   apply (gcd_divides_a_and_b _ _).1
   apply (gcd_divides_a_and_b b a).2
-have ccc : (gcd (gcd a b) c) ∣ c:= by
+have ccc : (gcd (gcd a b) c) My∣ c:= by
     apply (gcd_divides_a_and_b _ _).2
-have z1 : gcd a (gcd b c) ∣ (gcd (gcd a b) c) := by
+have z1 : gcd a (gcd b c) My∣ (gcd (gcd a b) c) := by
   apply gcd_greatest
   apply gcd_greatest
   apply (gcd_divides_a_and_b _ _).1
@@ -1193,7 +1197,7 @@ have z1 : gcd a (gcd b c) ∣ (gcd (gcd a b) c) := by
   apply divides_trans
   apply (gcd_divides_a_and_b _ _).2
   apply (gcd_divides_a_and_b _ _).2
-have z2 : gcd (gcd a b) c ∣ gcd a (gcd b c) := by
+have z2 : gcd (gcd a b) c My∣ gcd a (gcd b c) := by
   apply gcd_greatest
   apply divides_trans
   apply (gcd_divides_a_and_b _ _).1
@@ -1207,11 +1211,11 @@ apply da z1 z2
 
 -- 8.素数
 
-def is_prime (p:MyNat) : Prop := zero.succ<p ∧ forall k, k∣p ->  k=zero.succ ∨ k=p
+def is_prime (p:MyNat) : Prop := zero.succ<p ∧ forall k, k My∣p ->  k=zero.succ ∨ k=p
 
 -- 9. 「p|abならばp|aまたはp|b」が目標
 
-theorem pabpapb p a b : is_prime p -> p∣a*b -> p∣a∨p∣b := by
+theorem pabpapb p a b : is_prime p -> p My∣ a*b -> p My∣a∨p My∣b := by
 intros c d
 have z:zero<p := by
   unfold is_prime at c
@@ -1234,33 +1238,19 @@ cases kk
   have mmn := mmn _ _ t
   cases d
   case intro w h hh hhhh=>
-  rewrite [mul_dist] at mmn
-  rewrite [mul_dist] at mmn
-  rewrite [mul_dist] at mmn
-  rewrite [mul_assoc] at mmn
-  rewrite [mul_comm] at mmn
-  rewrite [add_comm] at mmn
-  rewrite [mul_comm] at mmn
-  rewrite [<-mul_assoc] at mmn
+  have eq:b*(pp*p+q*a)=p*(b*pp)+a*b*q := by ring
+  have eq2 : b*(r*p+s*a+1) = p*(b*r) + a*b*s + b := by ring
+  have zz : zero.succ = 1 := by aesop
+  rewrite [<-zz] at eq2
+  rewrite [eq,eq2] at mmn
   rewrite [<-hhhh] at mmn
-  rewrite [mul_comm] at mmn
-  rewrite [<-mul_assoc] at mmn
-  rewrite [<-mul_dist] at mmn
-  symm at mmn
-  rewrite [mul_assoc] at mmn
-  rewrite [mul_comm] at mmn
-  rewrite [mul_one] at mmn
-  apply divides_elim mmn
-  exists b*r + hh*s
-  rewrite [mul_dist]
-  apply add_abac.2
+  apply divides_elim
   symm
-  rewrite [mul_comm]
-  rewrite [<-mul_assoc]
-  rewrite [<-hhhh]
-  rewrite [mul_comm]
-  rw [<-mul_assoc]
-  exists hh*q+b*pp
+  apply mmn
+  exists b*r+hh*s
+  ring
+  exists b*pp+hh*q
+  ring
   }
 {
   case inr h =>
