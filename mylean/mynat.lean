@@ -1066,70 +1066,72 @@ theorem gcd_aa : forall a:MyNat, gcd a a = a := by
   }
 }
 
-theorem gcd_divides_a_and_b : forall b, forall a, (gcd a b) ∣ a  ∧ gcd a b ∣ b:= by
+theorem gcd_divides_a_and_b {a b} : (gcd a b) ∣ a  ∧ gcd a b ∣ b:= by
 {
-  apply ind_mynat
-  intros a b c
-  constructor
-  unfold gcd
-  split
-  {
-    case h_1 =>
-    aesop
-  }
-  {
-    case h_2 eq a m=>
-    generalize eq:c%a.succ = z
-    have b := b (c%a.succ)
-    have d := mod_lt c a.succ ?_
-    have b := b d a.succ
-    rewrite [eq] at b
-    have f := mod_eq c a.succ
-    cases f
-    {
-      case intro h w =>
-      rewrite [eq] at w
-      cases b
-      case intro left right =>
-      rewrite [<-w]
-      cases left
-      case intro ww hh =>
-      cases right
-      case intro www hhh =>
-      conv =>
-        rhs
-        rewrite [<-hh]
-      conv =>
-        arg 2
-        arg 2
-        rewrite [<-hhh]
-      unfold divides
-      exists h*ww + www
-      ring
-    }
-    {
-      case refine_1 =>
-      apply (lt_le_succ _ _).2
-      unfold le
-      exists a
-    }
-  }
-  {
+  have q : forall b a, (gcd a b) ∣ a  ∧ gcd a b ∣ b := by
+    apply ind_mynat
+    intros a b c
+    constructor
     unfold gcd
     split
     {
-      case h_1  eq m=>
-      apply all_divides_zero
+      case h_1 =>
+      aesop
     }
     {
       case h_2 eq a m=>
-      apply (b (c%a.succ) ?_ a.succ).1
-      apply mod_lt
-      apply (lt_le_succ _ _).2
-      unfold le
-      exists a
+      generalize eq:c%a.succ = z
+      have b := b (c%a.succ)
+      have d := mod_lt c a.succ ?_
+      have b := b d a.succ
+      rewrite [eq] at b
+      have f := mod_eq c a.succ
+      cases f
+      {
+        case intro h w =>
+        rewrite [eq] at w
+        cases b
+        case intro left right =>
+        rewrite [<-w]
+        cases left
+        case intro ww hh =>
+        cases right
+        case intro www hhh =>
+        conv =>
+          rhs
+          rewrite [<-hh]
+        conv =>
+          arg 2
+          arg 2
+          rewrite [<-hhh]
+        unfold divides
+        exists h*ww + www
+        ring
+      }
+      {
+        case refine_1 =>
+        apply (lt_le_succ _ _).2
+        unfold le
+        exists a
+      }
     }
-  }
+    {
+      unfold gcd
+      split
+      {
+        case h_1  eq m=>
+        apply all_divides_zero
+      }
+      {
+        case h_2 eq a m=>
+        apply (b (c%a.succ) ?_ a.succ).1
+        apply mod_lt
+        apply (lt_le_succ _ _).2
+        unfold le
+        exists a
+      }
+    }
+  apply q
 }
 
 theorem gcd_unique {a b:MyNat}: forall g1 g2,
@@ -1148,65 +1150,109 @@ aesop
 
 theorem gcd_comm : forall a b, gcd a b = gcd b a:= by
 intros a b
-apply @gcd_unique a b
-have z := gcd_divides_a_and_b a b
-have zz := gcd_divides_a_and_b b a
+wlog h:a<b with H
+have z : a=b ∨ b<a := by
+  have q := le_total a b
+  cases q
+  {
+    case inl hh =>
+    left
+    unfold le at hh
+    rcases hh with ⟨w,h⟩
+    cases w
+    case zero => aesop
+    case h.intro.succ x s=>
+    exfalso
+    apply x
+    apply (lt_le_succ _ _).2
+    aesop
+  }
+  {
+    case inr hh =>
+    cases eq_dec2 a b
+    {
+      case isFalse hhh =>
+      right
+      unfold lt
+      constructor
+      aesop
+      intros x
+      apply hhh
+      rw [x]
+    }
+    {
+      case isTrue hhh =>
+      left
+      apply hhh
+    }
+  }
+cases z
+{
+  case inr.inl h =>
+  rewrite [h]
+  rfl
+}
+{
+  case inr.inr h =>
+  symm
+  apply H b a h
+}
+conv =>
+  lhs
+  unfold gcd
+split
+exfalso
+have h := (lt_le_succ a zero).1 h
 aesop
-intros c d
-apply gcd_greatest
-aesop
-aesop
-intros c d
-apply gcd_greatest
-aesop
-aesop
+case h_2 eq b c=>
+have z : a%b.succ = a := by
+  apply mod_le h
+rewrite [z]
+rfl
+
 
 theorem gcd_assoc a b c : gcd a (gcd b c) = gcd (gcd a b) c:= by
 have da := divides_assym (gcd a (gcd b c)) (gcd (gcd a b) c)
 have aa : gcd a (gcd b c) ∣ a:= by
-  apply (gcd_divides_a_and_b _ _).1
+  apply (gcd_divides_a_and_b).1
 have bb : gcd a (gcd b c) ∣ b:= by
-  have l1 := (gcd_divides_a_and_b (gcd b c) a).2
-  apply divides_trans
-  apply l1
-  apply (gcd_divides_a_and_b c b).1
+  apply divides_trans _ _ _
+  apply gcd_divides_a_and_b.2
+  apply gcd_divides_a_and_b.1
 have cc : gcd a (gcd b c) ∣ c:= by
-  have l1 := (gcd_divides_a_and_b (gcd b c) a).2
-  apply divides_trans
-  apply l1
-  apply (gcd_divides_a_and_b c b).2
+  apply divides_trans _ _ _
+  apply gcd_divides_a_and_b.2
+  apply gcd_divides_a_and_b.2
 have aaa : (gcd (gcd a b) c) ∣ a:= by
-  have l1 := (gcd_divides_a_and_b (gcd a b) c).2
-  apply divides_trans
-  apply (gcd_divides_a_and_b _ _).1
-  apply (gcd_divides_a_and_b b a).1
+  apply divides_trans _ _ _
+  apply gcd_divides_a_and_b.1
+  apply gcd_divides_a_and_b.1
 have bbb : (gcd (gcd a b) c) ∣ b:= by
-  have l1 := (gcd_divides_a_and_b (gcd a b) c).2
-  apply divides_trans
-  apply (gcd_divides_a_and_b _ _).1
-  apply (gcd_divides_a_and_b b a).2
+  apply divides_trans _ _ _
+  apply gcd_divides_a_and_b.1
+  apply gcd_divides_a_and_b.2
 have ccc : (gcd (gcd a b) c) ∣ c:= by
-    apply (gcd_divides_a_and_b _ _).2
+  apply gcd_divides_a_and_b.2
 have z1 : gcd a (gcd b c) ∣ (gcd (gcd a b) c) := by
   apply gcd_greatest
   apply gcd_greatest
-  apply (gcd_divides_a_and_b _ _).1
+  apply gcd_divides_a_and_b.1
   apply divides_trans
-  apply (gcd_divides_a_and_b _ _).2
-  apply (gcd_divides_a_and_b _ _).1
+  apply gcd_divides_a_and_b.2
+  apply gcd_divides_a_and_b.1
   apply divides_trans
-  apply (gcd_divides_a_and_b _ _).2
-  apply (gcd_divides_a_and_b _ _).2
+  apply gcd_divides_a_and_b.2
+  apply gcd_divides_a_and_b.2
 have z2 : gcd (gcd a b) c ∣ gcd a (gcd b c) := by
   apply gcd_greatest
   apply divides_trans
-  apply (gcd_divides_a_and_b _ _).1
-  apply (gcd_divides_a_and_b _ _).1
+  apply gcd_divides_a_and_b.1
+  apply gcd_divides_a_and_b.1
   apply gcd_greatest
   apply divides_trans
-  apply (gcd_divides_a_and_b _ _).1
-  apply (gcd_divides_a_and_b _ _).2
-  apply (gcd_divides_a_and_b _ _).2
+  apply gcd_divides_a_and_b.1
+  apply gcd_divides_a_and_b.2
+  apply gcd_divides_a_and_b.2
 apply da z1 z2
 
 -- 8.素数
@@ -1224,7 +1270,7 @@ have z:zero<p := by
   aesop
 have z := gcd_linear a p
 rcases z with ⟨pp,q,r,s,t⟩
-have y := (gcd_divides_a_and_b p a).2
+have y := (@gcd_divides_a_and_b a p).2
 unfold is_prime at c
 rcases c with ⟨_,kk⟩
 have kk := kk (a.gcd p) y
@@ -1238,10 +1284,10 @@ cases kk
   have mmn := mmn _ _ t
   cases d
   case intro w h hh hhhh=>
+  have zz : zero.succ = 1 := by aesop
+  rewrite [zz] at mmn
   have eq:b*(pp*p+q*a)=p*(b*pp)+a*b*q := by ring
   have eq2 : b*(r*p+s*a+1) = p*(b*r) + a*b*s + b := by ring
-  have zz : zero.succ = 1 := by aesop
-  rewrite [<-zz] at eq2
   rewrite [eq,eq2] at mmn
   rewrite [<-hhhh] at mmn
   apply divides_elim
@@ -1255,7 +1301,60 @@ cases kk
 {
   case inr h =>
   left
-  have y := (gcd_divides_a_and_b p a).1
+  have y := (@gcd_divides_a_and_b a p).1
   rw [h] at y
   apply y
 }
+
+def le_total_dec n m := match n with
+|zero => true
+|succ n' => match m with
+  |zero => false
+  |succ m' => le_total_dec n' m'
+
+theorem le_total_dec1 {n m} : le_total_dec n m = true <-> n <= m := by
+have z:forall n, forall m, le_total_dec n m = true <-> n<=m := by
+{
+  intro n
+  induction n with
+  | zero =>
+  {
+    intro a
+    constructor
+    intros b
+    exists a
+    intro b
+    aesop
+  }
+  | succ n' ih=>
+  {
+    intro m
+    cases m
+    constructor
+    intro a
+    unfold le_total_dec at a
+    aesop
+    aesop
+    constructor
+    {
+      case succ.succ.mp a=>
+      intros c
+      unfold le_total_dec at c
+      simp at c
+      have z:=(ih _).1 c
+      rcases z with ⟨w,h⟩
+      exists w
+      rewrite [<-h]
+      aesop
+    }
+    {
+      case succ.succ.mpr a =>
+      intros c
+      unfold le_total_dec
+      simp
+      apply (ih _).2
+      aesop
+    }
+  }
+}
+apply z
