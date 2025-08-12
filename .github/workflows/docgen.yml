@@ -25,9 +25,12 @@ jobs:
         run: sudo chown runner _site && ls -l && mkdir _site/sample
       - name: Set up Lean toolchain
         uses: leanprover/lean-action@v1
-        with:
-          lake-package-directory: "mylean/docbuild"
-          build-args: "mynat:docs"
+      - name: build docs
+        run: MATHLIB_NO_CACHE_ON_UPDATE=1 lake update mynat:docs
+        working-directory: mylean/docbuild
+      - name: build docs
+        run: lake build mynat:docs
+        working-directory: mylean/docbuild
       - name: copy
         run: ls -l && cp -r mylean/docbuild/.lake/build/doc _site
       - name: Upload artifact
