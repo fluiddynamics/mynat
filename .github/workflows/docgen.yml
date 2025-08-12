@@ -25,6 +25,8 @@ jobs:
         run: sudo chown runner _site && ls -l && mkdir _site/sample
       - name: Set up Lean toolchain
         uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: "mylean/docbuild"
       - name: build docs
         run: MATHLIB_NO_CACHE_ON_UPDATE=1 lake update mynat:docs
         working-directory: mylean/docbuild
