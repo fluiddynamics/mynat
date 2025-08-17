@@ -231,9 +231,7 @@ instance : Lean.Grind.CommSemiring MyNat where
     rewrite [add_succ]
     have z:fromNat 0 =zero := by aesop
     have zz:fromNat 1 =zero.succ := by aesop
-    rewrite [z]
-    rewrite [add_zero]
-    rewrite [zz]
+    rewrite [z,add_zero,zz]
     aesop
   }
   ofNat_eq_natCast := by aesop
@@ -451,10 +449,8 @@ have z:w*aa.succ = w+w*aa := by
   simp
 rewrite [z] at b
 simp at b
-rewrite [add_comm] at b
-rewrite [add_assoc] at b
-have b := add_elim b
-have b := add_eq_zero _ _ b
+rewrite [add_comm,add_assoc] at b
+have b := add_eq_zero _ _ (add_elim b)
 aesop
 
 @[aesop unsafe]
@@ -554,10 +550,7 @@ cases t
   replace d:=le1 d
   have z : a=a+zero := by
     aesop
-  rewrite [z] at d
-  rewrite [<-succ_add] at d
-  rewrite [mul_comm] at d
-  rewrite [mul_dist] at d
+  rewrite [z,<-succ_add,mul_comm,mul_dist] at d
   replace d := add_eq_zero _ _ d
   rewrite [mul_one] at d
   rewrite [d] at eq
@@ -700,44 +693,6 @@ induction n with
 
 -- 7.ユークリッド
 
-theorem mynat_acc (n :MyNat) : Acc lt n := by
-induction n with
-|zero =>
-  apply Acc.intro
-  intros y a
-  exfalso
-  have z : zero<=y:= by
-    unfold le
-    exists y
-  unfold lt at a
-  have zz : y=zero :=by
-    apply le_asym
-    apply a.left
-    aesop
-  aesop
-| succ n' ih=>
-  have ih2 := ih
-  apply Acc.intro
-  intros y a
-  cases ih with
-  | intro h g=>
-    replace a := (lt_le_succ _ _).1 a
-    unfold le at a
-    cases a with
-    | intro w h =>
-      cases w with
-      | zero =>
-        have z : y=n' :=  by aesop
-        aesop
-      | succ w' =>
-        apply g
-        apply (lt_le_succ _ _).2
-        simp at h
-        rewrite [<-add_succ] at h
-        unfold le
-        exists w'
-
-
 @[simp]
 theorem succ_nat_mynat (n:MyNat) : toNat (n.succ) = (toNat n).succ := by
 aesop
@@ -784,8 +739,7 @@ cases a with
 | intro w h =>
 have z : toNat (n.succ+w) = toNat m := by rw [h]
 rewrite [add_tonat] at z
-rewrite [Nat.lt.eq_1]
-rewrite [<-z]
+rewrite [Nat.lt.eq_1,<-z]
 aesop
 
 def gcd (n m:MyNat) :MyNat := by
@@ -882,7 +836,6 @@ intros k
 unfold le
 exists k
 
-
 theorem ind_mynat (P:MyNat -> Prop) :
   (forall n, (forall k, k<n -> P k) -> P n) -> (forall n, P n) := by
 intros h m
@@ -891,8 +844,6 @@ intros h m
   apply b m m
   aesop
 }
-
-def posmy := { z // zero < z }
 
 theorem zero0 : zero = 0:=by
 aesop
@@ -939,18 +890,8 @@ simp
         rhs
         pattern s'*a
         rewrite [<-w]
-      rewrite [mul_dist]
-      rewrite [add_comm]
-      rewrite [mul_comm]
-      rewrite [mul_dist]
-      rewrite [<-add_assoc]
-      rewrite [mul_comm]
-      rewrite [add_assoc]
-      rewrite [add_assoc]
-      rewrite [add_comm]
-      rewrite [add_assoc]
-      rewrite [add_assoc]
-      rewrite [add_comm] at t
+      have eq:q'*(h*eq+a%eq)+(p'+s'*h)*eq = p'*eq+q'*a%eq +q'*h*eq + s'*h*eq := by ring
+      rewrite [eq]
       rewrite [t]
       ring
     }
@@ -967,25 +908,21 @@ rcases e with ⟨ee,eee⟩
 rcases z with ⟨p',q',r',s',t⟩
 symm at t
 apply divides_elim t
-rewrite [<-ddd]
-rewrite [<-eee]
+rewrite [<-ddd,<-eee]
 unfold divides
 exists r'*dd+s'*ee
 rewrite [mul_dist]
 conv =>
   pattern r'*dd
   rewrite [mul_comm]
-rewrite [<-mul_assoc]
-rewrite [mul_comm]
+rewrite [<-mul_assoc,mul_comm]
 apply add_abac.2
 conv =>
   pattern c*ee
   rewrite [mul_comm]
-rewrite [mul_comm]
-rewrite [mul_assoc]
+rewrite [mul_comm,mul_assoc]
 rfl
-rewrite [<-ddd]
-rewrite [<-eee]
+rewrite [<-ddd,<-eee]
 unfold divides
 exists p'*dd+q'*ee
 ring
@@ -1066,6 +1003,7 @@ theorem gcd_aa : forall a:MyNat, gcd a a = a := by
   }
 }
 
+@[aesop unsafe]
 theorem gcd_divides_a_and_b {a b} : (gcd a b) ∣ a  ∧ gcd a b ∣ b:= by
 {
   have q : forall b a, (gcd a b) ∣ a  ∧ gcd a b ∣ b := by
@@ -1210,48 +1148,38 @@ have z : a%b.succ = a := by
 rewrite [z]
 rfl
 
+syntax "auto" : tactic
+
+-- 2. 新しいタクティクの「動作」を定義
+macro_rules
+  | `(tactic| auto) => `(tactic|
+  first
+    |apply gcd_divides_a_and_b.1
+    |apply gcd_divides_a_and_b.2
+    |apply divides_trans _ _ _;apply gcd_divides_a_and_b.1;apply gcd_divides_a_and_b.1
+    |apply divides_trans _ _ _;apply gcd_divides_a_and_b.1;apply gcd_divides_a_and_b.2
+    |apply divides_trans _ _ _;apply gcd_divides_a_and_b.2;apply gcd_divides_a_and_b.1
+    |apply divides_trans _ _ _;apply gcd_divides_a_and_b.2;apply gcd_divides_a_and_b.2)
 
 theorem gcd_assoc a b c : gcd a (gcd b c) = gcd (gcd a b) c:= by
 have da := divides_assym (gcd a (gcd b c)) (gcd (gcd a b) c)
-have aa : gcd a (gcd b c) ∣ a:= by
-  apply (gcd_divides_a_and_b).1
-have bb : gcd a (gcd b c) ∣ b:= by
-  apply divides_trans _ _ _
-  apply gcd_divides_a_and_b.2
-  apply gcd_divides_a_and_b.1
-have cc : gcd a (gcd b c) ∣ c:= by
-  apply divides_trans _ _ _
-  apply gcd_divides_a_and_b.2
-  apply gcd_divides_a_and_b.2
-have aaa : (gcd (gcd a b) c) ∣ a:= by
-  apply divides_trans _ _ _
-  apply gcd_divides_a_and_b.1
-  apply gcd_divides_a_and_b.1
-have bbb : (gcd (gcd a b) c) ∣ b:= by
-  apply divides_trans _ _ _
-  apply gcd_divides_a_and_b.1
-  apply gcd_divides_a_and_b.2
-have ccc : (gcd (gcd a b) c) ∣ c:= by
-  apply gcd_divides_a_and_b.2
+have aa : gcd a (gcd b c) ∣ a:= by auto
+have bb : gcd a (gcd b c) ∣ b:= by auto
+have cc : gcd a (gcd b c) ∣ c:= by auto
+have aaa : (gcd (gcd a b) c) ∣ a:= by auto
+have bbb : (gcd (gcd a b) c) ∣ b:= by auto
+have ccc : (gcd (gcd a b) c) ∣ c:= by auto
 have z1 : gcd a (gcd b c) ∣ (gcd (gcd a b) c) := by
   apply gcd_greatest
   apply gcd_greatest
   apply gcd_divides_a_and_b.1
-  apply divides_trans
-  apply gcd_divides_a_and_b.2
-  apply gcd_divides_a_and_b.1
-  apply divides_trans
-  apply gcd_divides_a_and_b.2
-  apply gcd_divides_a_and_b.2
+  auto
+  auto
 have z2 : gcd (gcd a b) c ∣ gcd a (gcd b c) := by
   apply gcd_greatest
-  apply divides_trans
-  apply gcd_divides_a_and_b.1
-  apply gcd_divides_a_and_b.1
+  auto
   apply gcd_greatest
-  apply divides_trans
-  apply gcd_divides_a_and_b.1
-  apply gcd_divides_a_and_b.2
+  auto
   apply gcd_divides_a_and_b.2
 apply da z1 z2
 
@@ -1306,55 +1234,41 @@ cases kk
   apply y
 }
 
-def le_total_dec n m := match n with
-|zero => true
-|succ n' => match m with
-  |zero => false
-  |succ m' => le_total_dec n' m'
+-- 10. 供養
 
-theorem le_total_dec1 {n m} : le_total_dec n m = true <-> n <= m := by
-have z:forall n, forall m, le_total_dec n m = true <-> n<=m := by
-{
-  intro n
-  induction n with
-  | zero =>
-  {
-    intro a
-    constructor
-    intros b
-    exists a
-    intro b
+theorem mynat_acc (n :MyNat) : Acc lt n := by
+induction n with
+|zero =>
+  apply Acc.intro
+  intros y a
+  exfalso
+  have z : zero<=y:= by
+    unfold le
+    exists y
+  unfold lt at a
+  have zz : y=zero :=by
+    apply le_asym
+    apply a.left
     aesop
-  }
-  | succ n' ih=>
-  {
-    intro m
-    cases m
-    constructor
-    intro a
-    unfold le_total_dec at a
-    aesop
-    aesop
-    constructor
-    {
-      case succ.succ.mp a=>
-      intros c
-      unfold le_total_dec at c
-      simp at c
-      have z:=(ih _).1 c
-      rcases z with ⟨w,h⟩
-      exists w
-      rewrite [<-h]
-      aesop
-    }
-    {
-      case succ.succ.mpr a =>
-      intros c
-      unfold le_total_dec
-      simp
-      apply (ih _).2
-      aesop
-    }
-  }
-}
-apply z
+  aesop
+| succ n' ih=>
+  have ih2 := ih
+  apply Acc.intro
+  intros y a
+  cases ih with
+  | intro h g=>
+    replace a := (lt_le_succ _ _).1 a
+    unfold le at a
+    cases a with
+    | intro w h =>
+      cases w with
+      | zero =>
+        have z : y=n' :=  by aesop
+        aesop
+      | succ w' =>
+        apply g
+        apply (lt_le_succ _ _).2
+        simp at h
+        rewrite [<-add_succ] at h
+        unfold le
+        exists w'
