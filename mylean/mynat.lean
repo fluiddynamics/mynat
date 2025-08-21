@@ -45,27 +45,40 @@ def add (n m : MyNat) : MyNat := addn n m
 @[aesop unsafe 50% apply]
 def mul (n m:MyNat) : MyNat := repeatn (addn n) m 0
 
+-- infix:60(priority:=2000) " + " => add
+-- infix:70(priority:=2000) " * " => mul
+
 instance:Add MyNat where add:=add
 instance:Mul MyNat where mul:=mul
 
-
-#eval ((3:MyNat) + (4:MyNat))
-#eval ((3:MyNat) * (4:MyNat))
+#eval (3+4)
+#eval (3*4)
+#check (3+4)
 
 -- 3. 定理の証明
 
+@[simp]
+theorem repeatn_succ : repeatn f n.succ i = f (repeatn f n i) := by simp
+
+theorem add_unfold : a+b = add a b := by aesop
+theorem mul_unfold : a*b = mul a b := by aesop
+
+@[simp]
+theorem zero0 : zero=0 := by aesop
+@[simp]
+theorem zerosucc : zero.succ = 1 := by aesop
+
 @[aesop safe,simp]
-theorem add_zero (n : MyNat) : zero + n = n:= by aesop
+theorem add_zero (n : MyNat) : 0 + n = n:= by aesop
 @[aesop safe,simp]
-theorem zero_add (n:MyNat) : n + zero = n := by
+theorem zero_add (n:MyNat) : n + 0 = n := by
 induction n with
 | zero => aesop
 | succ a ih=>
-unfold instHAdd at *
-unfold Add.add at *
-unfold HAdd.hAdd at *
-unfold instAdd at *
-unfold add at *
+rewrite [add_unfold] at *
+unfold add
+unfold addn
+simp
 aesop
 
 @[aesop safe,simp]
@@ -85,160 +98,132 @@ induction n <;> aesop
 theorem add_assoc (l m n:MyNat) : (l+m) +n = l + (m + n) := by
 induction n <;> aesop
 
+instance : @Std.Commutative MyNat (· + ·) where
+  comm := add_comm
+
+instance : @Std.Associative MyNat (· + ·) where
+  assoc := add_assoc
+
 @[aesop unsafe]
-theorem add_elim {n} {m} : n + m = n -> m = zero := by
+theorem add_elim {n m:MyNat} : n + m = n -> m = 0 := by
 induction n <;> aesop
 
 @[aesop safe]
-theorem add_eq_zero n m : n+m=zero -> m=zero := by
-induction n <;> aesop
+theorem add_eq_zero {n m:MyNat} : n+m=0 -> n=0 := by
+intros a
+rewrite [add_unfold] at a
+unfold add at a
+unfold addn at a
+cases n with
+|zero => aesop
+| succ n' =>
+unfold repeatn at a
+injection a
 
 theorem add_abac {a b c:MyNat} : a+b=a+c <-> b=c := by
 induction a <;> aesop
 
 @[aesop safe,simp]
-theorem mul_zero (n : MyNat) : zero * n = zero:= by
+theorem mul_zero (n : MyNat) : 0 * n = 0:= by
 induction n <;> aesop
 
 @[aesop safe,simp]
-theorem zero_mul (n:MyNat) : n * zero = zero := by aesop
+theorem zero_mul (n:MyNat) : n * 0 = 0 := by aesop
 
 @[aesop safe]
-theorem mul_one (m:MyNat) : m * zero.succ = m := by
+theorem mul_one (m:MyNat) : m * 1 = m := by
 induction m with
 | zero => aesop
 | succ m' ih =>
-unfold instHMul at *
-unfold Mul.mul at *
-unfold HMul.hMul at *
-unfold instMul at *
-unfold mul at *
-aesop
+rewrite [mul_unfold]
+unfold mul
+unfold repeatn
+split
+case h_1 heq => injection heq
+case h_2 heq n i j =>
+  have z:i=zero := by
+    injection j
+    aesop
+  rewrite [z]
+  unfold repeatn
+  aesop
 
 @[simp]
-theorem one_mul (m:MyNat) : zero.succ * m = m := by
+theorem one_mul (m:MyNat) : 1 * m = m := by
 induction m with
 | zero => aesop
 | succ m' ih =>
-unfold instHMul at *
-unfold Mul.mul at *
-unfold HMul.hMul at *
-unfold instMul at *
-unfold mul at *
+rewrite [mul_unfold] at *
+unfold mul
+unfold repeatn
+rewrite [<-mul,ih]
 aesop
+
 
 @[aesop safe,simp]
-theorem mul_succ (m n:MyNat) : m*(n.succ) = m + m*n := by
-aesop
-
-@[simp]
-theorem succ_mul (m n:MyNat) : (m.succ)*n = n + m*n := by
+theorem mul_succ (m n:MyNat) : m*(n+1) = m*n + m := by
 induction n with
 | zero => aesop
-| succ a ih =>
-rewrite [mul_succ]
-rewrite [mul_succ]
+| succ n' ih =>
+  rewrite [mul_unfold] at *
+  unfold mul at ih
+  unfold mul
+  conv =>
+    lhs
+    rewrite [add_succ]
+  unfold repeatn
+  rewrite [ih]
+  aesop
+
+@[simp]
+theorem succ_add_one (n:MyNat) : n.succ = n+1 := by
+induction n <;> aesop
+
+@[simp]
+theorem succ_mul (m n:MyNat) : (m+1)*n = m*n + n := by
+induction n with
+|zero => aesop
+|succ n' ih =>
+rewrite [mul_unfold] at *
+unfold mul
+unfold repeatn
+unfold mul at ih
 rewrite [ih]
-rewrite [add_succ]
-rewrite [add_succ]
-rewrite [<-add_assoc]
-conv =>
-  pattern m+a
-  rewrite [add_comm]
-rewrite [add_assoc]
-rfl
+rewrite [<-add]
+rewrite [<-add_unfold]
+simp
+ac_rfl
 
 --a*b = b*a
 theorem mul_comm (n m : MyNat) : n*m = m*n := by
-induction n <;> aesop
+induction m with
+|zero => aesop
+|succ m' ih =>
+simp
+rewrite [ih]
+rfl
 
 @[simp]
 theorem mul_dist (l m n:MyNat) : l*(m+n) = l*m + l*n := by
 induction n with
 |zero => aesop
 |succ a ih =>
-rewrite [succ_add]
-rewrite [mul_succ]
-rewrite [mul_succ]
-rewrite [ih]
-rewrite [add_comm]
-rewrite [add_assoc]
-conv =>
-  lhs
-  pattern l*a+l
-  rewrite [add_comm]
+simp
+rewrite [<-add_assoc,mul_succ,ih]
+ac_rfl
 
 theorem mul_assoc (l m n:MyNat) : (l*m)*n = l*(m*n) := by
-induction n <;> aesop
-
-instance:NatCast MyNat where natCast:=fromNat
-def nsmul : Nat -> MyNat -> MyNat :=fun a b => a*b
-instance:HMul Nat MyNat MyNat where hMul := nsmul
-instance:HPow MyNat Nat MyNat where hPow := fun a b => repeatn a.mul (fromNat b) 1
-
-instance : Lean.Grind.CommSemiring MyNat where
-  mul_assoc := mul_assoc
-  add_zero := zero_add
-  add_comm := add_comm
-  add_assoc := add_assoc
-  mul_one := mul_one
-  one_mul :=  one_mul -- defaultを使いたい
-  left_distrib := mul_dist
-  right_distrib := by-- defaultを使いたい
-  {
-    intros a b c
-    rewrite [mul_comm,mul_dist,mul_comm]
-    conv =>
-      pattern c*b
-      rewrite [mul_comm]
-  }
-  zero_mul := mul_zero
-  mul_zero := zero_mul-- defaultを使いたい
-  mul_comm := mul_comm
-  pow_zero := by aesop
-  pow_succ := by
-  {
-    intros a n
-    unfold HPow.hPow
-    unfold instHPowNat
-    simp
-    conv =>
-      lhs
-      unfold fromNat
-      simp
-    rewrite [mul_comm]
-    rfl
-  }
-  ofNat_succ := by
-  {
-    intros a
-    induction a with
-    |zero => aesop
-    |succ a ih =>
-    simp
-    rewrite [ih]
-    unfold OfNat.ofNat
-    unfold instOfNat
-    unfold instOfNatNat
-    simp
-    conv =>
-      lhs
-      unfold fromNat
-    conv =>
-      rhs
-      pattern fromNat 1
-      unfold fromNat
-    rewrite [add_succ]
-    have z:fromNat 0 =zero := by aesop
-    have zz:fromNat 1 =zero.succ := by aesop
-    rewrite [z,add_zero,zz]
-    aesop
-  }
-  ofNat_eq_natCast := by aesop
-  nsmul_eq_natCast_mul := by aesop
+induction n with
+|zero => aesop
+|succ n' ih =>
+simp
+rewrite [ih]
+rewrite [mul_one]
+rewrite [mul_one]
+ac_rfl
 
 instance : CommSemiring MyNat where
-  nsmul := nsmul
+  nsmul := fun x y => (fromNat x) * y
   mul_assoc := mul_assoc
   add_zero := zero_add
   zero_add := add_zero
@@ -253,60 +238,27 @@ instance : CommSemiring MyNat where
   right_distrib := by
   {
     intros a b c
-    rewrite [mul_comm,mul_dist,mul_comm]
-    conv =>
-      pattern c*b
-      rewrite [mul_comm]
+    rewrite [mul_comm]
+    rewrite [mul_dist]
+    rewrite [mul_comm]
+    rewrite [add_comm]
+    rewrite [mul_comm]
+    simp
   }
   nsmul_zero := by
   {
     intros x
-    unfold nsmul
-    unfold Nat.cast
-    unfold NatCast.natCast
-    unfold instNatCast
-    simp
     unfold fromNat
     aesop
   }
   nsmul_succ := by
-{
-  intros n x
-  unfold nsmul
-  unfold Nat.cast
-  unfold NatCast.natCast
-  unfold instNatCast
-  simp
-  conv =>
-    lhs
-    unfold fromNat
-    unfold HMul.hMul
-    unfold instHMul
-    unfold Mul.mul
-    unfold instMul
+  {
+    intros n x
+    conv =>
+      lhs
+      unfold fromNat
     simp
-  rewrite [<-succ_mul]
-  rfl
-}
-  natCast_succ := by
-{
-  intros n
-  unfold NatCast.natCast
-  unfold instNatCast
-  simp
-  conv =>
-    lhs
-    unfold HAdd.hAdd
-    unfold instHAdd
-    unfold Add.add
-    unfold instAddNat
-    unfold Nat.add
-    unfold fromNat
-  have z : 1=zero.succ := by aesop
-  rewrite [z]
-  rewrite [succ_add]
-  aesop
-}
+  }
 
 example (m n : MyNat) : n * (n + m) = n * n + n * m := by
   -- `ring` が使えるようになった！
@@ -317,12 +269,13 @@ example (m n : MyNat) : n * (n + m) = n * n + n * m := by
 @[simp]
 def le (n m:MyNat) := exists c, n+c = m
 infix:50(priority:=2000) " <= " => le
+-- instance:LE MyNat where le:=le
 
 @[aesop unsafe]
-theorem le_refl n : n <= n := by aesop
+theorem le_refl {n} : n <= n := by aesop
 
 @[aesop unsafe]
-theorem le_step (n m:MyNat) : n <= m -> n <= m.succ := by
+theorem le_step {n m:MyNat} : n <= m -> n <= m.succ := by
 aesop
 
 theorem le_trans {l m n} : l <= m -> m <= n -> l <= n := by
@@ -337,46 +290,41 @@ theorem le_asym n m : le n m -> le m n -> n = m := by
 intros a b
 cases a with | intro c h =>
 cases b with | intro d i =>
-rewrite [<-h] at i
-rewrite [add_assoc] at i
-replace i : c+d=zero := add_elim i
-replace i : c = zero := by
-  apply add_eq_zero
-  rewrite [add_comm]
-  apply i
-rewrite [i] at h
+rewrite [<-i] at h
+rewrite [add_assoc] at h
+have h := add_elim h
+have h := add_eq_zero h
 aesop
 
+theorem succ_le {n m} : n <= m <-> n.succ <= m.succ := by
+unfold le at *
+constructor
+intros a
+rcases a with ⟨w,h⟩
+exists w
+simp
+rewrite [<-h]
+ac_rfl
+intros a
+rcases a with ⟨w,h⟩
+exists w
+rewrite [add_succ] at h
+injection h
+
 theorem le_total n m: (le n m) ∨ (le m n) := by
-induction n with
-| zero => aesop
-| succ a ih => induction m with
-  | zero => aesop
-  | succ b ij =>
-    cases ih with
-    |inr ih =>
-      right
-      apply (@le_trans _ a a.succ)
-      aesop
-      apply le_step
-      apply le_refl
-    |inl ih =>
-      unfold le at ih
-      cases ih with
-      | intro  w h => cases w with
-        | zero =>
-          rewrite [<-h]
-          right
-          simp
-          exists 1
-          have z : 1=zero.succ := by
-            aesop
-          aesop
-        | succ c =>
-          left
-          unfold le
-          exists c
-          aesop
+have z : forall n, forall m, (n<=m) ∨ (m<=n) := by
+  intro n
+  induction n with
+  |zero => aesop
+  |succ n' ih =>
+    intro m
+    cases m with
+    |zero => aesop
+    | succ m' =>
+      rewrite [<-succ_le]
+      rewrite [<-succ_le]
+      apply ih m'
+apply z
 
 @[simp]
 def lt (n m:MyNat) := le n m ∧ ¬ n = m
@@ -385,54 +333,53 @@ infix:50(priority:=2000) " < " => lt
 @[aesop safe]
 theorem not_eq_succ (m n:MyNat) : ¬ m + n.succ = m := by
 induction m with
-| zero => aesop
-| succ a ih => aesop
+| zero =>
+rewrite [succ_add]
+unfold Not
+intros a
+injection a
+|succ m' ih =>
+rewrite [add_succ]
+unfold Not
+intros b
+injection b
+aesop
 
 theorem lt_le_succ {n m:MyNat} : n<m ↔ n.succ <= m  := by
-apply Iff.intro
+constructor
+intro a
+rcases a with ⟨⟨w,g⟩ ,b⟩
+cases w with
+|zero => aesop
+|succ w' =>
+  exists w'
+  simp at *
+  rewrite [<-g]
+  ac_rfl
 intros a
-cases a with
-| intro left right =>
-  unfold le at left
-  cases left with
-  | intro w h => cases w with
-    | zero => aesop
-    | succ ww =>
-      aesop
-intros a
-unfold le at a
-cases a with
-| intro w h =>
-  rewrite [add_succ] at h
-  rewrite [<-succ_add] at h
-  unfold lt
-  constructor
-  aesop
-  unfold Not
-  intros a
-  rewrite [a] at h
-  apply (not_eq_succ m w)
-  aesop
-
+constructor
+apply le_trans
+apply le_step le_refl
+aesop
+rcases a with ⟨w,h⟩
+rewrite [<-h]
+intros x
+symm at x
+rewrite [add_succ]at x
+rewrite [<-succ_add]at x
+apply @not_eq_succ n w
+aesop
 
 @[aesop safe]
 theorem lt_trans {l m n:MyNat} : l<m -> m<n -> l<n := by
 intros a b
-have z := @lt_le_succ l m
-have zz := @lt_le_succ m n
-cases z with
-| intro mp =>
-cases zz with
-| intro mpp  =>
-replace a := mp a
-replace b := mpp b
-have z: le m m.succ := by
-  apply le_step
-  apply le_refl
-have zz: le l.succ n := by
-  apply le_trans a ?_
-  apply le_trans z b
-apply lt_le_succ.2 zz
+apply lt_le_succ.1 at a
+apply lt_le_succ.1 at b
+apply lt_le_succ.2
+apply le_trans
+apply le_step
+apply a
+aesop
 
 @[aesop unsafe]
 theorem mul_elim (n m:MyNat) : zero < n -> n * m = n -> m = 1 := by
@@ -442,36 +389,44 @@ cases aa with |intro w h
 rewrite [<-h] at b
 simp at b
 cases m with
-| zero => aesop
+| zero =>
+simp at b
+exfalso
+have eq:w+1=w.succ := by aesop
+rewrite [eq] at b
+injection b
 | succ aa =>
 have z:w*aa.succ = w+w*aa := by
   simp
 rewrite [z] at b
 simp at b
 rewrite [add_comm,add_assoc] at b
-have b := add_eq_zero _ _ (add_elim b)
+have eq:w*aa+(aa+1+w)=(w+1)+(w*aa+aa) := by ac_rfl
+rewrite [eq] at b
+have z := add_elim b
+rewrite [add_comm] at z
+have z := add_eq_zero z
 aesop
 
 @[aesop unsafe]
 theorem mul_eq_one (n m:MyNat) : n * m = 1 -> n = 1 := by
+cases m with
+|zero =>
 intros a
+simp at a
+injection a
+|succ m' =>
 cases n with
-| zero => aesop
-| succ nn => cases m with
-  | zero =>
-    rewrite [zero_mul]at a
-    contradiction
-  | succ mm =>
-    simp at a
-    have a : (nn + mm) + nn * mm = zero := by
-      have succ_inj (z zz:MyNat) : z.succ=zz.succ -> z=zz := by aesop
-      replace a:= succ_inj _ _ a
-      aesop
-    rewrite [add_comm] at a
-    replace a:=add_eq_zero _ _ a
-    rewrite [add_comm] at a
-    replace a:=add_eq_zero _ _ a
-    aesop
+|zero => aesop
+|succ n'=>
+  intros a
+  simp at a
+  have eq: m'+(n'*m'+(n'+1))= 1+(m'+n'*m'+n') := by ac_rfl
+  rewrite [eq] at a
+  have a := add_elim a
+  rewrite [add_comm] at a
+  have a := add_eq_zero a
+  aesop
 
 -- 5.整除
 
@@ -1232,6 +1187,76 @@ cases kk
 }
 
 -- 10. 供養
+
+instance:Add MyNat where add:=add
+instance:Mul MyNat where mul:=mul
+
+instance:NatCast MyNat where natCast:=fromNat
+def nsmul : Nat -> MyNat -> MyNat :=fun a b => a*b
+instance:HMul Nat MyNat MyNat where hMul := nsmul
+instance:HPow MyNat Nat MyNat where hPow := fun a b => repeatn a.mul (fromNat b) 1
+
+instance : Lean.Grind.CommSemiring MyNat where
+  mul_assoc := mul_assoc
+  add_zero := zero_add
+  add_comm := add_comm
+  add_assoc := add_assoc
+  mul_one := mul_one
+  one_mul :=  one_mul -- defaultを使いたい
+  left_distrib := mul_dist
+  right_distrib := by-- defaultを使いたい
+  {
+    intros a b c
+    rewrite [mul_comm,mul_dist,mul_comm]
+    conv =>
+      pattern c*b
+      rewrite [mul_comm]
+  }
+  zero_mul := mul_zero
+  mul_zero := zero_mul-- defaultを使いたい
+  mul_comm := mul_comm
+  pow_zero := by aesop
+  pow_succ := by
+  {
+    intros a n
+    unfold HPow.hPow
+    unfold instHPowNat
+    simp
+    conv =>
+      lhs
+      unfold fromNat
+      simp
+    rewrite [mul_comm]
+    rfl
+  }
+  ofNat_succ := by
+  {
+    intros a
+    induction a with
+    |zero => aesop
+    |succ a ih =>
+    simp
+    rewrite [ih]
+    unfold OfNat.ofNat
+    unfold instOfNat
+    unfold instOfNatNat
+    simp
+    conv =>
+      lhs
+      unfold fromNat
+    conv =>
+      rhs
+      pattern fromNat 1
+      unfold fromNat
+    rewrite [add_succ]
+    have z:fromNat 0 =zero := by aesop
+    have zz:fromNat 1 =zero.succ := by aesop
+    rewrite [z,add_zero,zz]
+    aesop
+  }
+  ofNat_eq_natCast := by aesop
+  nsmul_eq_natCast_mul := by aesop
+
 
 theorem mynat_acc (n :MyNat) : Acc lt n := by
 induction n with
