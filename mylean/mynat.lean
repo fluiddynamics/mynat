@@ -296,6 +296,12 @@ have h := add_elim h
 have h := add_eq_zero h
 aesop
 
+theorem le_zero {n} : n<=zero -> n=zero := by
+intros a
+apply le_asym _ _ a
+simp
+
+
 theorem succ_le {n m} : n <= m <-> n.succ <= m.succ := by
 unfold le at *
 constructor
@@ -468,12 +474,10 @@ cases n with
   replace yy := mul_elim _ _ ?_ yy
   replace yy := mul_eq_one _ _ yy
   rewrite [yy] at zz
-  have q : 1 = zero.succ := by aesop
-  rewrite [q] at zz
-  rewrite [mul_one] at zz
-  aesop
-  aesop
-
+  rewrite [<-zz]
+  ring
+  apply lt_le_succ.2
+  exists nn
 
 theorem le1 {a b:MyNat}: a+b<=a -> b=0 := by
 intros c
@@ -482,8 +486,7 @@ cases c
 case intro w h =>
 rewrite [add_assoc] at h
 replace h := @add_elim _ _ h
-rewrite [add_comm] at h
-replace h:= add_eq_zero _ _ h
+replace h:= add_eq_zero h
 aesop
 
 theorem mul_le {a b c:MyNat} : (a.succ)*b <= (a.succ)*c -> b<=c := by
@@ -504,10 +507,9 @@ cases t
   replace d:=le1 d
   have z : a=a+zero := by
     aesop
-  rewrite [z,<-succ_add,mul_comm,mul_dist] at d
-  replace d := add_eq_zero _ _ d
-  rewrite [mul_one] at d
-  rewrite [d] at eq
+  rewrite [z,<-succ_add,mul_comm,mul_dist,add_comm] at d
+  replace d := add_eq_zero d
+  simp at d
   aesop
 }
 
@@ -559,7 +561,20 @@ have h : ∀(a b:MyNat), eq_dec a b = true <-> a=b := by
   intro a
   induction a with
   | zero => aesop
-  | succ a' ih => aesop
+  | succ a' ih =>
+    intros b
+    cases b with
+    |zero =>
+      constructor
+      aesop
+      intros aa
+      injection aa
+    |succ b' =>
+      constructor
+      aesop
+      intros aa
+      injection aa
+      aesop
 aesop
 
 instance eq_dec2 (n m:MyNat) : Decidable (n=m) := by
@@ -597,23 +612,23 @@ have b : ∀ n:MyNat, ∃c, (c*m + n%m) = n := by
     exists zero
     simp
   | succ n' ih =>
+    cases ih with
+    | intro w hh =>
     unfold mod
     generalize h: (n' % m).succ.eq_dec m = b
     cases b with
     | false =>
       simp
-      aesop
+      exists w
+      rewrite [<-add_assoc,hh]
+      rfl
     | true =>
       simp
       replace h := eq_dec1.1 h
-      cases ih with
-      | intro c ih =>
-        have z : c * m + (n' % m).succ = n'.succ := by
-          simp
-          aesop
-        rw [h] at z
-        exists c+zero.succ
-        aesop
+      simp at h
+      exists w+1
+      rewrite [<-hh,add_assoc,h]
+      ring
 aesop
 
 
@@ -630,7 +645,12 @@ induction n with
     cases b with
     | true =>
       simp
-      apply a
+      unfold le at a
+      cases a with
+      |intro w hh =>
+      exists w
+      rewrite [<-hh]
+      ac_rfl
     | false =>
       simp
       have z:¬ (n' % m).succ = m := by
@@ -648,42 +668,14 @@ induction n with
 -- 7.ユークリッド
 
 @[simp]
-theorem succ_nat_mynat (n:MyNat) : toNat (n.succ) = (toNat n).succ := by
-aesop
-
-@[simp]
-theorem succ_mynat_nat (n:Nat) : fromNat (n.succ) = (fromNat n).succ := by
-aesop
-
-@[simp]
-theorem add_mynat_nat(n m:Nat): fromNat (n+m) = fromNat (n) + fromNat (m):= by
-induction m with
-| zero =>
-  unfold fromNat
-  simp
-| succ m' ih =>
-  simp
-  rewrite [<-Nat.add_assoc]
-  aesop
-
-@[simp]
-theorem add_nat_mynat(n m:MyNat): toNat (n+m) = toNat (n) + toNat (m):= by
-induction m with
-|zero => aesop
-|succ m' ih=> aesop
-
-
-theorem to_from_nat (n:MyNat) : fromNat n.toNat = n := by
-induction n with
-| zero => aesop
-| succ n' ih => aesop
-
 theorem add_tonat {n m} : toNat (n+m) = n.toNat + m.toNat := by
 induction n with
 |zero => aesop
 |succ n' ih =>
-simp
-ring
+rewrite [add_succ]
+conv =>lhs;unfold toNat
+rewrite [ih]
+ac_rfl
 
 theorem lt_tonat {n m} : n<m -> Nat.lt n.toNat m.toNat := by
 intros a
@@ -693,12 +685,8 @@ cases a with
 | intro w h =>
 have z : toNat (n.succ+w) = toNat m := by rw [h]
 rewrite [add_tonat] at z
+conv at z=>pattern n.succ.toNat;unfold toNat
 rewrite [Nat.lt.eq_1,<-z]
-aesop
-
-theorem le_zero {n} : n<=zero -> n=zero := by
-intros a
-apply le_asym _ _ a
 simp
 
 def gcd (n m:MyNat) :MyNat := by
@@ -731,56 +719,25 @@ theorem ind_mynat1 (P:MyNat -> Prop) :
   |zero =>
   {
     intros k b
-    have z : forall k:MyNat,zero <= k := by
-      intros k
-      unfold le
-      exists k
-    have zz := le_zero b
     apply a
-    intros kk aa
+    intros aa aaa
+    unfold lt at aaa
     exfalso
-    rewrite [zz] at aa
-    cases aa
-    case zero.a.intro left right =>
-      have left := le_zero left
-      aesop
+    apply aaa.2
+    apply le_asym
+    apply aaa.1
+    have b := le_zero b
+    aesop
   }
   |succ b ih =>
   {
-    intros kk bb
-    have z : forall a b, a<=b -> a=b ∨ a<b:=by
-      intros a b h
-      unfold le at h
-      cases h
-      case intro eq c=>
-      cases eq
-      case zero => aesop
-      case succ d=>
-        right
-        apply lt_le_succ.2
-        unfold le
-        rewrite [succ_add] at c
-        rewrite [<-add_succ] at c
-        exists d
-    replace bb := z _ _ bb
-    cases bb
-    {
-    case succ.inl h=>
-      apply a
-      intros k aa
-      apply ih
-      rewrite [h] at aa
-      replace aaa := (@lt_le_succ k b.succ).1 aa
-      aesop
-    }
-    {
-      case succ.inr h=>
-      apply ih
-      unfold le
-      replace h := lt_le_succ.1 h
-      unfold le at h
-      aesop
-    }
+    intros k1 s
+    apply a
+    intros t tt
+    apply ih
+    have tt := lt_le_succ.1 tt
+    apply succ_le.2
+    apply le_trans tt s
   }
 }
 
@@ -798,15 +755,6 @@ intros h m
   aesop
 }
 
-@[simp]
-theorem zero0 : zero = 0:=by
-aesop
-
-@[aesop unsafe]
-theorem succ_le (a:MyNat) : a < a.succ := by
-apply lt_le_succ.2
-apply le_refl
-
 @[aesop unsafe]
 theorem zero_lt_succ (a:MyNat) : zero < a.succ := by
 apply lt_le_succ.2
@@ -819,10 +767,7 @@ intros n ih
 unfold gcd
 intro a
 split
-exists zero.succ
-exists zero
-exists zero
-exists zero
+exists zero.succ,zero,zero,zero
 simp
 {
   {
@@ -833,10 +778,7 @@ simp
       cases mod_eq a eq
       case intro h w =>
       rcases ih with ⟨p',q',r',s',t⟩
-      exists q'
-      exists p' + s'*h
-      exists s'
-      exists r'+q'*h
+      exists q',p' + s'*h,s',r'+q'*h
       conv =>
         lhs
         rewrite [<-w]
@@ -928,7 +870,8 @@ theorem mod_aa {a} : a%a = zero := by
     case h_2 n x=>
     have z : x%x.succ = x := by
       apply mod_le
-      apply succ_le
+      apply lt_le_succ.2
+      apply le_refl
     rewrite [z]
     split
     rfl
