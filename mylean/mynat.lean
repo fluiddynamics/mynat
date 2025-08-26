@@ -278,6 +278,7 @@ theorem le_refl {n} : n <= n := by aesop
 theorem le_step {n m:MyNat} : n <= m -> n <= m.succ := by
 aesop
 
+@[aesop unsafe,grind]
 theorem le_trans {l m n} : l <= m -> m <= n -> l <= n := by
 intros a b
 cases a with | intro c h =>
@@ -300,7 +301,6 @@ theorem le_zero {n} : n<=zero -> n=zero := by
 intros a
 apply le_asym _ _ a
 simp
-
 
 theorem succ_le {n m} : n <= m <-> n.succ <= m.succ := by
 unfold le at *
@@ -376,7 +376,7 @@ rewrite [<-succ_add]at x
 apply @not_eq_succ n w
 aesop
 
-@[aesop safe]
+@[aesop unsafe,trans]
 theorem lt_trans {l m n:MyNat} : l<m -> m<n -> l<n := by
 intros a b
 apply lt_le_succ.1 at a
@@ -631,7 +631,6 @@ have b : ∀ n:MyNat, ∃c, (c*m + n%m) = n := by
       ring
 aesop
 
-
 theorem mod_lt (n m:MyNat): 0<m -> n%m < m:= by
 intros a
 replace a := lt_le_succ.1 a
@@ -737,14 +736,9 @@ theorem ind_mynat1 (P:MyNat -> Prop) :
     apply ih
     have tt := lt_le_succ.1 tt
     apply succ_le.2
-    apply le_trans tt s
+    grind
   }
 }
-
-theorem zero_le : forall k:MyNat,zero <= k := by
-intros k
-unfold le
-exists k
 
 theorem ind_mynat (P:MyNat -> Prop) :
   (forall n, (forall k, k<n -> P k) -> P n) -> (forall n, P n) := by
@@ -755,12 +749,6 @@ intros h m
   aesop
 }
 
-@[aesop unsafe]
-theorem zero_lt_succ (a:MyNat) : zero < a.succ := by
-apply lt_le_succ.2
-unfold le
-exists a
-
 theorem gcd_linear : forall b a,exists (p q r s:MyNat), p*a+q*b = (r*a+s*b) + (gcd a b) := by
 apply ind_mynat
 intros n ih
@@ -770,30 +758,28 @@ split
 exists zero.succ,zero,zero,zero
 simp
 {
+  case h_2 eq aa m =>
+  have ih := ih (a%aa.succ) ?_ aa.succ
   {
-    case h_2 eq aa m =>
-    have ih := ih (a%aa.succ) ?_ aa.succ
-    {
-      rewrite [<-m] at *
-      cases mod_eq a eq
-      case intro h w =>
-      rcases ih with ⟨p',q',r',s',t⟩
-      exists q',p' + s'*h,s',r'+q'*h
-      conv =>
-        lhs
-        rewrite [<-w]
-      conv =>
-        rhs
-        pattern s'*a
-        rewrite [<-w]
-      have eq:q'*(h*eq+a%eq)+(p'+s'*h)*eq = p'*eq+q'*a%eq +q'*h*eq + s'*h*eq := by ring
-      rewrite [eq]
-      rewrite [t]
-      ring
-    }
-    apply mod_lt
-    apply zero_lt_succ
+    rewrite [<-m] at *
+    cases mod_eq a eq
+    case intro h w =>
+    rcases ih with ⟨p',q',r',s',t⟩
+    exists q',p' + s'*h,s',r'+q'*h
+    conv =>
+      lhs
+      rewrite [<-w]
+    conv =>
+      rhs
+      pattern s'*a
+      rewrite [<-w]
+    have eq:q'*(h*eq+a%eq)+(p'+s'*h)*eq = p'*eq+q'*a%eq +q'*h*eq + s'*h*eq := by ring
+    rewrite [eq,t]
+    ring
   }
+  apply mod_lt
+  apply lt_le_succ.2
+  aesop
 }
 
 theorem gcd_greatest : forall b,forall a d, d ∣ a -> d ∣ b -> d ∣ (gcd a b) := by
@@ -823,84 +809,6 @@ unfold divides
 exists p'*dd+q'*ee
 ring
 
-
-theorem mod_le : a < b -> a%b = a := by
-{
-  induction a with
-  |zero => {
-    intro aa
-    unfold mod
-    rfl
-  }
-  |succ aa ih => {
-    intros c
-    have z : aa<aa.succ := by
-      apply lt_le_succ.2
-      unfold le
-      exists zero
-      simp
-    have z : aa<b := by
-      apply lt_trans z c
-    replace ih := ih z
-    unfold mod
-    rewrite [ih]
-    split
-    {
-      case h_1 hea x y =>
-      replace d := eq_dec1.1 y
-      exfalso
-      aesop
-    }
-    {
-      case h_2 =>
-      simp
-    }
-  }
-}
-
-theorem mod_aa {a} : a%a = zero := by
-{
-  unfold mod
-  split
-  {
-    case h_1 =>
-    rfl
-  }
-  {
-    case h_2 n x=>
-    have z : x%x.succ = x := by
-      apply mod_le
-      apply lt_le_succ.2
-      apply le_refl
-    rewrite [z]
-    split
-    rfl
-    case h_2 heq =>
-    exfalso
-    rewrite [eq_dec1.2] at heq
-    aesop
-    rfl
-  }
-}
-
-theorem gcd_aa : forall a:MyNat, gcd a a = a := by
-{
-  intros a
-  unfold gcd
-  split
-  {
-    case h_1 b c =>
-    rfl
-  }
-  {
-    case h_2 b c m=>
-    rewrite [<-m]
-    rewrite [mod_aa]
-    unfold gcd
-    rfl
-  }
-}
-
 @[aesop unsafe]
 theorem gcd_divides_a_and_b {a b} : (gcd a b) ∣ a  ∧ gcd a b ∣ b:= by
 {
@@ -922,17 +830,11 @@ theorem gcd_divides_a_and_b {a b} : (gcd a b) ∣ a  ∧ gcd a b ∣ b:= by
       have b := b d a.succ
       rewrite [eq] at b
       have f := mod_eq c a.succ
-      cases f
+      rcases f with ⟨h,w⟩
       {
-        case intro h w =>
         rewrite [eq] at w
-        cases b
-        case intro left right =>
+        rcases b with ⟨ ⟨ww,hh ⟩ , ⟨www,hhh ⟩ ⟩
         rewrite [<-w]
-        cases left
-        case intro ww hh =>
-        cases right
-        case intro www hhh =>
         conv =>
           rhs
           rewrite [<-hh]
@@ -940,14 +842,12 @@ theorem gcd_divides_a_and_b {a b} : (gcd a b) ∣ a  ∧ gcd a b ∣ b:= by
           arg 2
           arg 2
           rewrite [<-hhh]
-        unfold divides
         exists h*ww + www
         ring
       }
       {
         case refine_1 =>
         apply lt_le_succ.2
-        unfold le
         exists a
       }
     }
@@ -980,73 +880,27 @@ apply divides_assym
 apply g
 aesop
 apply f
-constructor
-aesop
-aesop
+constructor <;> aesop
 
-theorem gcd_comm : forall a b, gcd a b = gcd b a:= by
-intros a b
-wlog h:a<b with H
-have z : a=b ∨ b<a := by
-  have q := le_total a b
-  cases q
-  {
-    case inl hh =>
-    left
-    unfold le at hh
-    rcases hh with ⟨w,h⟩
-    cases w
-    case zero => aesop
-    case h.intro.succ x s=>
-    exfalso
-    apply x
-    apply lt_le_succ.2
-    aesop
-  }
-  {
-    case inr hh =>
-    cases eq_dec2 a b
-    {
-      case isFalse hhh =>
-      right
-      unfold lt
-      constructor
-      aesop
-      intros x
-      apply hhh
-      rw [x]
-    }
-    {
-      case isTrue hhh =>
-      left
-      apply hhh
-    }
-  }
-cases z
-{
-  case inr.inl h => aesop
-}
-{
-  case inr.inr h =>
-  symm
-  apply H b a h
-}
-conv =>
-  lhs
-  unfold gcd
-split
-exfalso
-have h := le_zero ((@lt_le_succ a zero).1 h)
-injection h
-case h_2 eq b c=>
-have z : a%b.succ = a := by
-  apply mod_le h
-rewrite [z]
-rfl
+theorem gcd_aa : forall a:MyNat, gcd a a = a := by
+intros a
+apply divides_assym
+apply gcd_divides_a_and_b.1
+apply gcd_greatest <;> aesop
+
+theorem gcd_comm {a b}: gcd a b = gcd b a:= by
+apply @gcd_unique a b (gcd a b) (gcd b a)
+have c:=@gcd_divides_a_and_b a b
+have c:=@gcd_divides_a_and_b b a
+aesop
+intros d
+have c:=gcd_greatest b a d
+aesop
+intros d
+have c:=gcd_greatest a b d
+aesop
 
 syntax "auto" : tactic
-
--- 2. 新しいタクティクの「動作」を定義
 macro_rules
   | `(tactic| auto) => `(tactic|
   first
@@ -1194,7 +1048,7 @@ instance : Lean.Grind.CommSemiring MyNat where
     rewrite [add_succ]
     have z:fromNat 0 =zero := by aesop
     have zz:fromNat 1 =zero.succ := by aesop
-    rewrite [z,add_zero,zz]
+    rewrite [z,zz]
     aesop
   }
   ofNat_eq_natCast := by aesop
@@ -1228,12 +1082,12 @@ induction n with
     | intro w h =>
       cases w with
       | zero =>
-        have z : y=n' :=  by aesop
+        rewrite [add_succ] at h
+        injection h
         aesop
       | succ w' =>
         apply g
         apply lt_le_succ.2
-        simp at h
-        rewrite [<-add_succ] at h
-        unfold le
-        exists w'
+        rewrite [succ_add] at h
+        injection h
+        aesop
