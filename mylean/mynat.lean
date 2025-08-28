@@ -297,11 +297,6 @@ have h := add_elim h
 have h := add_eq_zero h
 aesop
 
-theorem le_zero {n} : n<=zero -> n=zero := by
-intros a
-apply le_asym _ _ a
-simp
-
 theorem succ_le {n m} : n <= m <-> n.succ <= m.succ := by
 unfold le at *
 constructor
@@ -388,7 +383,7 @@ apply a
 aesop
 
 @[aesop unsafe]
-theorem mul_elim (n m:MyNat) : zero < n -> n * m = n -> m = 1 := by
+theorem mul_elim (n m:MyNat) : 0 < n -> n * m = n -> m = 1 := by
 intros a b
 replace aa := (@lt_le_succ zero n).1 a
 cases aa with |intro w h
@@ -439,12 +434,6 @@ cases n with
 @[simp]
 def divides (d n:MyNat) := exists k, d * k = n
 infix:50(priority:=2000) " ∣ " => divides
-
-theorem zero_divides_only_zero n : zero ∣ n -> n=0 := by
-intros a
-cases a with
-| intro w h
-aesop
 
 theorem all_divides_zero d : d ∣ zero := by
 simp
@@ -725,7 +714,8 @@ theorem ind_mynat1 (P:MyNat -> Prop) :
     apply aaa.2
     apply le_asym
     apply aaa.1
-    have b := le_zero b
+    apply le_trans
+    apply b
     aesop
   }
   |succ b ih =>
@@ -856,7 +846,7 @@ theorem gcd_divides_a_and_b {a b} : (gcd a b) ∣ a  ∧ gcd a b ∣ b:= by
       split
       {
         case h_1  eq m=>
-        apply all_divides_zero
+        exists 0
       }
       {
         case h_2 eq a m=>
