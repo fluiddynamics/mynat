@@ -1,7 +1,6 @@
 import Aesop
 import Mathlib.Tactic.Ring
 
-
 -- 1. 独自の自然数型 MyNat を定義します
 inductive MyNat where
   | zero : MyNat
@@ -972,6 +971,7 @@ cases kk
   rw [h] at y
   apply y
 }
+
 
 -- 10. 供養
 
