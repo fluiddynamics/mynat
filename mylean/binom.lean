@@ -246,9 +246,52 @@ apply le_trans _ k2
 apply le_step
 apply @MyNat.le_refl k
 
-
+@[simp]
 def pow a n := repeatn (fun x => a*x) n 1
 
 #eval pow 2 3
 #eval pow 3 0
 #eval pow 0 0
+
+theorem pow1 : pow a (n+m) = pow a n * pow a m := by
+induction m with
+|zero =>
+simp
+|succ m' ih =>
+rewrite [succ_add]
+simp
+rewrite [<-pow]
+rewrite [<-pow]
+rewrite [<-pow]
+rewrite [ih]
+ring
+
+theorem pow2 : pow a (n*m) = pow (pow a n) m := by
+induction m with
+|zero => aesop
+|succ m' ih =>
+rewrite [succ_add_one]
+rewrite [mul_dist]
+rewrite [pow1]
+rewrite [pow1]
+rewrite [ih]
+rewrite [mul_one]
+have z : 1=zero.succ:= by aesop
+rewrite [z]
+conv =>
+  rhs
+  arg 2
+  simp
+  rewrite [<-pow]
+
+theorem pow3 : pow (a*b) n = pow a n * pow b n:= by
+induction n with
+|zero =>
+simp
+|succ n' ih =>
+simp
+rewrite [<-pow]
+rewrite [<-pow]
+rewrite [<-pow]
+rewrite [ih]
+ring
