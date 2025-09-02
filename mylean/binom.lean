@@ -295,3 +295,185 @@ rewrite [<-pow]
 rewrite [<-pow]
 rewrite [ih]
 ring
+
+def accumulate (f:MyNat->MyNat) n := match n with
+|zero => f 0
+| succ n' => f n + accumulate f n'
+
+theorem accum1 f g n : accumulate (fun z => f z + g z) n = accumulate f n + accumulate g n := by
+induction n with
+|zero =>
+unfold accumulate
+rfl
+|succ n' ih =>
+unfold accumulate
+rewrite [ih]
+ring
+
+theorem accum2 f n : accumulate f n.succ = (f 0) + accumulate (fun z => f (z+1)) n := by
+induction n with
+|zero =>
+unfold accumulate
+unfold accumulate
+simp
+|succ n' ih =>
+unfold accumulate
+rewrite [ih]
+rewrite [succ_add_one]
+rewrite [succ_add_one]
+ring
+
+theorem accum3 f a n : accumulate (fun z => a * f z) n = a * accumulate f n := by
+induction n with
+|zero =>
+unfold accumulate
+rfl
+|succ n' ih =>
+unfold accumulate
+rewrite [ih]
+ring
+
+theorem pow4 : pow (a+1) n =
+  accumulate (fun z => binom n z * pow a z) (n+1) := by
+induction n with
+|zero =>
+simp
+unfold accumulate
+split
+case h_1 heq =>
+  have z : 1 = zero.succ := by aesop
+  rewrite [z] at heq
+  injection heq
+case h_2 n' heq=>
+  unfold binom
+  have z : 0=zero :=by aesop
+  have zz : 1=zero.succ :=by simp
+  rewrite [z]
+  simp
+  rewrite [zz]
+  simp
+  rewrite [zz] at heq
+  injection heq with zzz
+  rewrite [<-zzz]
+  unfold accumulate
+  rewrite [z]
+  simp
+|succ n' ih =>
+  conv =>
+    lhs
+    unfold pow
+    unfold repeatn
+    rewrite [<-pow]
+    rewrite [ih]
+    rewrite [mul_comm]
+    rewrite [mul_dist]
+    rewrite [mul_one]
+  conv =>
+    rhs
+    arg 2
+    rewrite [<-succ_add_one]
+  conv =>
+    rhs
+    rewrite [accum2]
+    arg 2
+    arg 1
+    ext
+    unfold binom
+    rewrite [<-succ_add_one]
+    simp
+    rewrite [<-pow]
+    rewrite [mul_comm]
+    rewrite [mul_dist]
+  conv =>
+    rhs
+    rewrite [accum1]
+    arg 2
+    arg 1
+    arg 1
+    ext
+    rewrite [mul_assoc]
+  conv =>
+    rhs
+    arg 2
+    arg 1
+    rewrite [accum3]
+    arg 2
+    arg 2
+    simp
+  conv =>
+    rhs
+    arg 2
+    arg 1
+    arg 2
+    arg 1
+    ext
+    rewrite [mul_comm]
+  conv =>
+    rhs
+    rewrite [<-add_assoc]
+    arg 1
+    rewrite [add_comm]
+  rewrite [add_assoc]
+  have z : forall q w, q*pow q w = pow q (w+1) := by
+    intros
+    rewrite [<-succ_add_one]
+    conv =>
+      rhs
+      unfold pow
+      unfold repeatn
+      rewrite [<-pow]
+  conv =>
+    rhs
+    arg 2
+    arg 2
+    arg 1
+    ext
+    rewrite [z]
+  conv=>
+    rhs
+    arg 2
+    arg 2
+    unfold accumulate
+  have zz := (binom1 n').2 1
+  ring_nf at zz
+  rewrite [succ_add_one]
+  ring_nf
+  rewrite [zz]
+  ring_nf
+  have zzz : forall x:MyNat, 1+x=x+1 := by
+    intros x
+    ring
+  conv =>
+    rhs
+    arg 2
+    arg 1
+    ext
+    rewrite [zzz]
+  conv =>
+    rhs
+    arg 1
+    arg 2
+    rewrite [mul_comm]
+  rewrite [add_assoc]
+  have zzzz : forall q, binom q 0 = 1 := by
+    intros q
+    unfold binom
+    split
+    aesop
+    aesop
+  rewrite [zzzz]
+  conv =>
+    rhs
+    arg 2
+    arg 1
+    rewrite [<-zzzz n']
+  have ffff := accum2 (fun x => pow a x * binom n' x) n'
+  rewrite [<-ffff]
+  rewrite [succ_add_one]
+  conv =>
+    rhs
+    arg 2
+    arg 1
+    ext
+    rewrite [mul_comm]
+  ring_nf
