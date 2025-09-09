@@ -402,10 +402,7 @@ case h_2 n' heq=>
     simp
   conv =>
     rhs
-    arg 2
-    arg 1
-    arg 2
-    arg 1
+    enter [2,1,2,1]
     ext
     rewrite [mul_comm]
   conv =>

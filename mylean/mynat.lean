@@ -428,6 +428,14 @@ cases n with
   have a := add_eq_zero a
   aesop
 
+theorem lt_mul (n m:MyNat) : 0< m -> n <= n*m := by
+intros a
+rcases (lt_le_succ.1 a) with ⟨w,h⟩
+simp at h
+rewrite [<-h]
+exists n*w
+ring
+
 -- 5.整除
 
 @[simp]
@@ -651,6 +659,63 @@ induction n with
         aesop
       aesop
 
+theorem mod_unique c1 c2 d k1 k2: k1<d -> k2<d ->
+  c1*d+k1 = c2*d+k2 -> k1=k2 := by
+intros a b c
+wlog h:c1<=c2
+symm
+apply this _ _ d
+apply b
+apply a
+symm at c
+apply c
+cases le_total c2 c1 with
+|inl h =>
+  apply h
+|inr hh =>
+  exfalso
+  apply h hh
+rcases h with ⟨w,h⟩
+rewrite [<-h] at c
+ring_nf at c
+rewrite [add_assoc] at c
+have c :=  add_abac.1 c
+cases w with
+|zero =>
+  simp at c
+  apply c
+|succ w' =>
+  have hh : d<=k1 := by
+    rewrite [c]
+    simp
+    exists w'*d+k2
+    ring
+  have a := lt_le_succ.1 a
+  have aa := le_trans a hh
+  simp at aa
+  rcases aa with ⟨q,w⟩
+  exfalso
+  have qq:q+(k1+1)=k1+(q+1):= by ring
+  rewrite [qq] at w
+  have ae := add_elim w
+  rewrite [<-succ_add_one] at ae
+  injection ae
+
+theorem mod_add n m a : 0<m -> (n+m*a)%m = n%m := by
+rcases (mod_eq n m) with ⟨w,h⟩
+rcases (mod_eq (n+m*a) m) with ⟨w1,h1⟩
+conv at h1 =>
+  rhs
+  rewrite [<-h]
+intros h
+apply mod_unique _ _ m _ _
+apply mod_lt
+apply h
+apply mod_lt
+apply h
+have eq:w*m+n%m+m*a = (w+a)*m +n%m := by ring
+rewrite [eq] at h1
+apply h1
 
 -- 7.ユークリッド
 
@@ -971,7 +1036,6 @@ cases kk
   rw [h] at y
   apply y
 }
-
 
 -- 10. 供養
 
