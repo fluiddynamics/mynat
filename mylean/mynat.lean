@@ -600,6 +600,22 @@ infix:100(priority:=2000) " % " => mod
 #eval (mod 0 5)
 #eval (mod 5 0)
 
+theorem zero_mod n : n%0 = n := by
+induction n with
+|zero =>
+  simp
+|succ n' ih =>
+  unfold mod
+  split
+  case h_1 x heq =>
+    exfalso
+    rewrite [ih] at heq
+    rewrite [<-zero0] at heq
+    simp at heq
+  case h_2 =>
+    rewrite [ih]
+    rfl
+
 theorem mod_eq (n m:MyNat): ∃ c, (c*m + n%m) = n := by
 have b : ∀ n:MyNat, ∃c, (c*m + n%m) = n := by
   intros n
@@ -664,14 +680,10 @@ theorem mod_unique c1 c2 d k1 k2: k1<d -> k2<d ->
 intros a b c
 wlog h:c1<=c2
 symm
-apply this _ _ d
-apply b
-apply a
 symm at c
-apply c
+apply this _ _ d _ _ b a c
 cases le_total c2 c1 with
-|inl h =>
-  apply h
+|inl h => apply h
 |inr hh =>
   exfalso
   apply h hh
@@ -681,25 +693,21 @@ ring_nf at c
 rewrite [add_assoc] at c
 have c :=  add_abac.1 c
 cases w with
-|zero =>
-  simp at c
-  apply c
+|zero => aesop
 |succ w' =>
-  have hh : d<=k1 := by
-    rewrite [c]
-    simp
-    exists w'*d+k2
-    ring
-  have a := lt_le_succ.1 a
-  have aa := le_trans a hh
-  simp at aa
-  rcases aa with ⟨q,w⟩
+  apply lt_le_succ.1 at a
+  simp at *
+  rcases a with ⟨aa,aaa ⟩
+  rewrite [c] at aaa
+  have z:aa+(k2+(d+d*w')+1) = d+((aa+k2+d*w')+1) := by ring
+  rewrite [z] at aaa
+  conv at aaa=>
+    rhs
+    rewrite [<-zero_add d]
+  apply add_abac.1 at aaa
+  rewrite [<-succ_add_one] at aaa
   exfalso
-  have qq:q+(k1+1)=k1+(q+1):= by ring
-  rewrite [qq] at w
-  have ae := add_elim w
-  rewrite [<-succ_add_one] at ae
-  injection ae
+  injection aaa
 
 theorem mod_add n m a : 0<m -> (n+m*a)%m = n%m := by
 rcases (mod_eq n m) with ⟨w,h⟩
@@ -873,8 +881,7 @@ theorem gcd_divides_a_and_b {a b} : (gcd a b) ∣ a  ∧ gcd a b ∣ b:= by
     unfold gcd
     split
     {
-      case h_1 =>
-      aesop
+      case h_1 => aesop
     }
     {
       case h_2 eq a m=>

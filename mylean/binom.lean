@@ -2,6 +2,8 @@ import mynat
 
 open MyNat
 
+namespace binom
+
 def frac (n:MyNat) := match n with
 | .zero => 1
 | .succ n' => n * frac n'
@@ -252,6 +254,7 @@ def pow a n := repeatn (fun x => a*x) n 1
 #eval pow 2 3
 #eval pow 3 0
 #eval pow 0 0
+#eval pow 0 1
 
 theorem pow1 : pow a (n+m) = pow a n * pow a m := by
 induction m with
@@ -334,7 +337,7 @@ rewrite [ih]
 ring
 
 theorem pow4 : pow (a+1) n =
-  accumulate (fun z => binom n z * pow a z) (n+1) := by
+  accumulate (fun z => binom n z * pow a z) n := by
 induction n with
 |zero =>
 simp
@@ -342,7 +345,6 @@ unfold accumulate
 split
 case h_1 heq =>
   have z : 1 = zero.succ := by aesop
-  rewrite [z] at heq
   injection heq
 case h_2 n' heq=>
   unfold binom
@@ -352,12 +354,8 @@ case h_2 n' heq=>
   simp
   rewrite [zz]
   simp
-  rewrite [zz] at heq
-  injection heq with zzz
-  rewrite [<-zzz]
-  unfold accumulate
-  rewrite [z]
-  simp
+  exfalso
+  injection heq
 |succ n' ih =>
   conv =>
     lhs
@@ -368,10 +366,6 @@ case h_2 n' heq=>
     rewrite [mul_comm]
     rewrite [mul_dist]
     rewrite [mul_one]
-  conv =>
-    rhs
-    arg 2
-    rewrite [<-succ_add_one]
   conv =>
     rhs
     rewrite [accum2]
@@ -402,75 +396,57 @@ case h_2 n' heq=>
     simp
   conv =>
     rhs
-    enter [2,1,2,1]
-    ext
-    rewrite [mul_comm]
-  conv =>
-    rhs
-    rewrite [<-add_assoc]
-    arg 1
     rewrite [add_comm]
+    arg 1
+    arg 1
+    rewrite [mul_comm]
+    arg 1
+    arg 1
+    ext x
+    rewrite [mul_comm]
   rewrite [add_assoc]
-  have z : forall q w, q*pow q w = pow q (w+1) := by
-    intros
-    rewrite [<-succ_add_one]
+  apply add_abac.2
+  have z : forall x, a*pow a x = pow a (x+1) := by
+    intros x
+    rewrite [<-zerosucc]
+    rewrite [succ_add]
     conv =>
       rhs
       unfold pow
-      unfold repeatn
+      simp
       rewrite [<-pow]
   conv =>
     rhs
-    arg 2
-    arg 2
     arg 1
-    ext
+    arg 1
+    ext x
     rewrite [z]
-  conv=>
-    rhs
-    arg 2
-    arg 2
-    unfold accumulate
-  have zz := (binom1 n').2 1
-  ring_nf at zz
-  rewrite [succ_add_one]
-  ring_nf
-  rewrite [zz]
-  ring_nf
-  have zzz : forall x:MyNat, 1+x=x+1 := by
-    intros x
-    ring
-  conv =>
-    rhs
-    arg 2
-    arg 1
-    ext
-    rewrite [zzz]
-  conv =>
-    rhs
-    arg 1
-    arg 2
-    rewrite [mul_comm]
-  rewrite [add_assoc]
-  have zzzz : forall q, binom q 0 = 1 := by
-    intros q
+  have z : binom n'.succ 0=binom n' 0 := by
     unfold binom
-    split
-    aesop
-    aesop
-  rewrite [zzzz]
+    rewrite [<-zero0]
+    simp
+    cases n' <;> simp
+  rewrite [z]
   conv =>
-    rhs
     arg 2
-    arg 1
-    rewrite [<-zzzz n']
-  have ffff := accum2 (fun x => pow a x * binom n' x) n'
-  rewrite [<-ffff]
-  rewrite [succ_add_one]
-  conv =>
-    rhs
     arg 2
-    arg 1
-    ext
     rewrite [mul_comm]
-  ring_nf
+  rewrite [add_comm]
+  have a2 := accum2 (fun x => pow a x * binom n' x) n'
+  rewrite [<-a2]
+  conv =>
+    rhs
+    unfold accumulate
+  have z : binom n' n'.succ = 0:=by
+    have zz:=(binom1 n').2 0
+    simp
+    ring_nf at zz
+    ring_nf
+    apply zz
+  rewrite [z]
+  rewrite [zero_mul,add_zero]
+  conv =>
+    rhs
+    arg 1
+    ext x
+    rewrite [mul_comm]
