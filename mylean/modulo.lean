@@ -195,13 +195,9 @@ end modulo
 
 section modulo1
 
-
 open binom
-
-
 variable (p:MyNat)
 local infix:50 " ≡ " => modulo.modeq p
--- a^p
 
 theorem pow_p_id : is_prime p -> forall a:MyNat, pow a p ≡ a := by
 intros b a
