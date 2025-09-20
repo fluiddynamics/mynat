@@ -94,6 +94,19 @@ rfl
   apply lt_le_succ.2
   exists m'
 
+theorem modeq_pow2 {a a' n:MyNat} : a ≡ a' -> binom.pow a n ≡ binom.pow a' n:= by
+intros h
+induction n with
+|zero =>
+  simp
+  apply mod_refl
+|succ n' ih =>
+  simp
+  rewrite [<-binom.pow]
+  rewrite [<-binom.pow]
+  apply modeq_mul2
+  apply h
+  apply ih
 
 -- 加法の逆元の存在を示す
 theorem mod_minus a : 0<m -> exists a', a+a'≡ 0 := by
@@ -316,5 +329,93 @@ induction a with
   ring_nf
   ring_nf at c2
   apply c2
+
+theorem pow_p_pred1 a : ¬ a ≡ 0 -> is_prime p -> forall p':MyNat, succ p' = p
+  -> pow a p' ≡ 1 := by
+intros nap pp p' h
+have z := pow_p_id p pp a
+rewrite [<-h] at z
+unfold pow at z
+simp at z
+rewrite [<-pow] at z
+simp at h
+rewrite [h] at z
+have md := modulo.mod_rec p a pp ?_
+rcases md with ⟨ww,hh⟩
+have zz : (a * pow a p' * ww)≡a*ww := by
+  apply modulo.modeq_mul2
+  apply z
+  apply modulo.mod_refl
+have zzz : a*(pow a p')*ww≡ 1 := by apply modulo.mod_trans _ zz hh
+conv at zzz =>
+  lhs
+  rewrite [mul_assoc]
+  rewrite [mul_comm]
+  rewrite [mul_assoc]
+  rewrite [MyNat.mul_comm ww a]
+have zzzz : pow a p' *(a*ww) ≡ pow a p' * 1 := by
+  apply modulo.modeq_mul2
+  apply modulo.mod_refl
+  apply hh
+rewrite [mul_one] at zzzz
+apply modulo.mod_trans
+apply modulo.mod_sym
+apply zzzz
+apply zzz
+apply nap
+
+theorem pow11 n : pow 1 n = 1 := by
+induction n with
+|zero =>
+  simp
+|succ n' ih =>
+  simp
+  simp at ih
+  apply ih
+
+theorem pow_p_pred a k: is_prime p -> forall p':MyNat, succ p'= p
+-> pow a (p'*k+1) ≡ a := by
+intros pp p' eq
+rewrite [pow1]
+conv =>
+  lhs
+  arg 2
+  unfold pow
+  rewrite [<-zerosucc]
+  unfold repeatn
+  unfold repeatn
+  simp
+rewrite [pow2]
+generalize beq: a%p = b
+cases b with
+| zero =>
+  have z : a≡ 0 := by
+    unfold modulo.modeq
+    rewrite [beq]
+    rfl
+  have zz : (pow (pow a p') k * a) ≡ (pow (pow a p') k * 0) := by
+    apply modulo.modeq_mul2
+    apply modulo.mod_refl
+    apply z
+  rewrite [zero_mul] at zz
+  apply modulo.mod_trans
+  apply zz
+  apply modulo.mod_sym
+  apply z
+| succ b' =>
+  have z := pow_p_pred1 p a ?_ pp p' eq
+  have zz := @modulo.modeq_pow2 p _ _ k z
+  rewrite [pow11 k] at zz
+  have zzz := modulo.modeq_mul2 _ zz (@modulo.mod_refl p a)
+  rewrite [one_mul] at zzz
+  apply zzz
+  intros q
+  unfold modulo.modeq at q
+  rewrite  [beq] at q
+  rewrite [<-zero0] at q
+  conv at q =>
+    rhs
+    simp
+  injection q
 
 end modulo1
