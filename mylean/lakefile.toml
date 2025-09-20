@@ -5,6 +5,8 @@ version = "0.1.0"
 name = "mynat"
 [[lean_lib]]
 name = "binom"
+[[lean_lib]]
+name = "modulo"
 
 [[require]]
 name = "aesop"

@@ -15,3 +15,5 @@ jobs:
         uses: leanprover/lean-action@v1
         with:
           lake-package-directory: "mylean"
+      - name: build
+        run: lake build mynat binom modulo 

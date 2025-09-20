@@ -1113,8 +1113,33 @@ instance : Lean.Grind.CommSemiring MyNat where
     aesop
   }
   ofNat_eq_natCast := by aesop
-  nsmul_eq_natCast_mul := by aesop
-
+  nsmul_eq_natCast_mul := by
+    simp
+    unfold instNatCast
+    unfold Nat.cast
+    unfold NatCast.natCast
+    unfold fromNat
+    simp
+    unfold instCommSemiring
+    unfold Semiring.toNonAssocSemiring
+    simp
+    unfold NonAssocSemiring.toAddCommMonoidWithOne
+    simp
+    unfold Nat.unaryCast
+    intros n
+    induction n with
+    | zero =>
+      simp
+    |succ n' ih =>
+      simp
+      rewrite [<-Nat.unaryCast.eq_def] at ih
+      rewrite [<-zero0] at ih
+      intro a
+      rewrite [ih]
+      conv =>
+        rhs
+        unfold fromNat
+      simp
 
 theorem mynat_acc (n :MyNat) : Acc lt n := by
 induction n with
