@@ -213,13 +213,18 @@ variable (eqp' : p' + 1 = p)
 variable (eqq' : q' + 1 = q)
 include eqp' eqq'
 
-theorem rsa a : binom.pow a (p'*q'+1) ≡pq a := by
+theorem rsa a : forall k, binom.pow a (k*p'*q'+1) ≡pq a := by
+intros k
 apply (crt _ _ pp qp npq _ _).1
 constructor
-apply pow_p_pred p a q' pp p' ?_
+rewrite [mul_assoc]
+rewrite [mul_comm]
+rewrite [mul_assoc]
+have z := pow_p_pred p a (q'*k) pp p' ?_
+assumption
 simp
 assumption
 rewrite [mul_comm]
-apply pow_p_pred q a p' qp q' ?_
+apply pow_p_pred q a (k*p') qp q' ?_
 simp
 assumption
