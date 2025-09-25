@@ -7,6 +7,8 @@ name = "mynat"
 name = "binom"
 [[lean_lib]]
 name = "modulo"
+[[lean_lib]]
+name = "rsa"
 
 [[require]]
 name = "aesop"

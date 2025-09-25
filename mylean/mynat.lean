@@ -725,6 +725,26 @@ have eq:w*m+n%m+m*a = (w+a)*m +n%m := by ring
 rewrite [eq] at h1
 apply h1
 
+theorem dvd_mod_0 m a : 0<m -> (m∣a ↔ a%m = 0) := by
+intros b
+constructor
+intros b
+rcases b with ⟨c,cc⟩
+have ma := mod_add 0 m c b
+rewrite [cc] at ma
+simp at ma
+rewrite [ma]
+unfold mod
+rewrite [<-zero0]
+simp
+intros c
+rcases (mod_eq a m) with ⟨d,dd⟩
+exists d
+rewrite [c] at dd
+simp at dd
+rewrite [<-dd]
+ring
+
 -- 7.ユークリッド
 
 @[simp]

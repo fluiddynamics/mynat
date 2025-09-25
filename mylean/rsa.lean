@@ -171,15 +171,12 @@ induction a with
   apply  (modulo.minusone_cancel p w ?_ b' b).2
   apply modulo.mod_sym
   apply c1
-  rewrite [add_comm]
   apply p1
   apply modulo.mod_sym
   apply  (modulo.minusone_cancel q w ?_ b' b).2
   apply modulo.mod_sym
   apply c2
-  rewrite [add_comm]
   apply q1
-  rewrite [add_comm]
   apply h
   intros c
   constructor
@@ -192,9 +189,7 @@ induction a with
   apply (modulo.minusone_cancel (p*q) w ?_ b' b).2
   apply modulo.mod_sym
   apply c
-  rewrite [add_comm]
   apply h
-  rewrite [add_comm]
   apply p1
   apply modulo.mod_sym
   apply (modulo.minusone_cancel q w ?_ b' b).1
@@ -205,12 +200,26 @@ induction a with
   apply (modulo.minusone_cancel (p*q) w ?_ b' b).2
   apply modulo.mod_sym
   apply c
-  rewrite [add_comm]
   apply h
-  rewrite [add_comm]
   apply q1
   apply MyNat.lt_trans
   apply lt01
   apply pq1
   apply pp
   apply qp
+
+variable (p':MyNat) (q':MyNat)
+variable (eqp' : p' + 1 = p)
+variable (eqq' : q' + 1 = q)
+include eqp' eqq'
+
+theorem rsa a : binom.pow a (p'*q'+1) ≡pq a := by
+apply (crt _ _ pp qp npq _ _).1
+constructor
+apply pow_p_pred p a q' pp p' ?_
+simp
+assumption
+rewrite [mul_comm]
+apply pow_p_pred q a p' qp q' ?_
+simp
+assumption

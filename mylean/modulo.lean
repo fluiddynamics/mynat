@@ -132,6 +132,40 @@ rfl
 apply b
 apply b
 
+theorem minusone_cancel w : 1+w≡ 0 -> forall a b, a+w≡ b ↔ a≡ b+1 := by
+intros a b c
+constructor
+intros d
+have  dd : b+w+1 ≡ c+1 := by
+  apply modeq_add2 m d
+  apply mod_refl
+have  ee : b≡   b+w+1 := by
+  rewrite [<-MyNat.zero_add b]
+  rewrite [add_assoc]
+  apply modeq_add2
+  simp
+  apply mod_refl
+  apply mod_sym
+  rewrite [add_comm]
+  apply a
+apply mod_trans
+apply ee
+apply dd
+intros d
+have  dd : b+w ≡ c+1+w := by
+  apply modeq_add2 m d
+  apply mod_refl
+have  ee : c+1+w≡ c := by
+  rewrite [<-MyNat.zero_add c]
+  rewrite [add_assoc]
+  apply modeq_add2
+  simp
+  apply mod_refl
+  apply a
+apply mod_trans
+apply dd
+apply ee
+
 -- 素数pの場合の性質を示す
 
 -- 積の逆元
