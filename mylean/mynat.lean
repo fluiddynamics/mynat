@@ -790,6 +790,8 @@ apply z
 
 #eval (gcd 15 20)
 #eval (gcd 8 20)
+#eval (gcd 8 0)
+#eval (gcd 0 9)
 
 theorem ind_mynat1 (P:MyNat -> Prop) :
   (forall n, (forall k, k<n -> P k) -> P n) -> (forall n, forall k, k<=n -> P k) := by
@@ -831,7 +833,7 @@ intros h m
   aesop
 }
 
-theorem gcd_linear : forall b a,exists (p q r s:MyNat), p*a+q*b = (r*a+s*b) + (gcd a b) := by
+theorem gcd_linear_symmetric : forall b a,exists (p q r s:MyNat), p*a+q*b = (r*a+s*b) + (gcd a b) := by
 apply ind_mynat
 intros n ih
 unfold gcd
@@ -864,9 +866,64 @@ simp
   aesop
 }
 
+theorem gcd_linear b a: a≠ 0 -> exists (p s:MyNat), p*a = s*b + (gcd a b) := by
+rcases (gcd_linear_symmetric b a) with ⟨p,q,r,s,eq⟩
+cases a with
+|zero =>
+  simp
+|succ a' =>
+  intros a0
+  cases b with
+  | zero =>
+    simp at *
+    rewrite [<-zero0]
+    unfold gcd
+    exists 1
+    ring
+  | succ b' =>
+    generalize h:a'.succ=a
+    generalize h1:b'.succ=b
+    rewrite [h,h1] at eq
+    rcases (mod_eq r b) with ⟨wb,hb⟩
+    rcases (mod_eq q a) with ⟨wa,ha⟩
+    rewrite [<-hb] at eq
+    rewrite [<-ha] at eq
+    have ap : 0<a := by
+      apply lt_le_succ.2
+      exists a'
+    have bp : 0<b := by
+      apply lt_le_succ.2
+      exists b'
+    rcases (lt_le_succ.1 (mod_lt q a ap)) with ⟨c1,c2 ⟩
+    rcases (lt_le_succ.1 (mod_lt r b bp)) with ⟨d1,d2 ⟩
+    simp at c2
+    simp at d2
+    have eqx : p * a + (wa * a + q % a) * b + (c1+1)*b= (wb * b + r % b) * a + s * b + a.gcd b + (c1+1)*b := by
+      rewrite [eq]
+      ring
+    have eqx : p * a + (wa * a + q % a) * b + (c1+1)*b + (d1+1)*a= (wb * b + r % b) * a + s * b + a.gcd b + (c1+1)*b + (d1+1)*a := by
+      rewrite [eqx]
+      ring
+    rewrite [<-add_assoc] at c2
+    rewrite [<-add_assoc] at d2
+    have z:p * a + (wa * a + q % a) * b + (c1 + 1) * b + (d1 + 1) * a=p*a+wa*a*b+b*(c1+q%a+1)+(d1+1)*a := by ring
+    rewrite [z] at eqx
+    rewrite [c2] at eqx
+    have z:(wb * b + r % b) * a + s * b + a.gcd b + (c1 + 1) * b + (d1 + 1) * a =
+            wb*a*b + (d1+r%b+1)*a+s*b+a.gcd b + (c1+1)*b := by ring
+    rewrite [z] at eqx
+    rewrite [d2] at eqx
+    exists p+wa*b+b+d1+1
+    exists wb*a+a+s+c1+1
+    have z:(p + wa*b + b + d1 + 1) * a=p * a + wa * a *b+ b * a + (d1 + 1) * a := by ring
+    rewrite [z]
+    rewrite [eqx]
+    ring
+
+
 theorem gcd_greatest : forall b,forall a d, d ∣ a -> d ∣ b -> d ∣ (gcd a b) := by
 intros a b c d e
-have z := gcd_linear a b
+have z := gcd_linear_symmetric a b
 rcases d with ⟨dd,ddd⟩
 rcases e with ⟨ee,eee⟩
 rcases z with ⟨p',q',r',s',t⟩
@@ -1027,8 +1084,9 @@ have z:0<p := by
   have zz:= @lt_le_succ.1 c.1
   apply lt_le_succ.2
   aesop
-have z := gcd_linear a p
-rcases z with ⟨pp,q,r,s,t⟩
+have z2 : p≠ 0 := by aesop
+have z := gcd_linear a p z2
+rcases z with ⟨pp,s,t⟩
 have y := (@gcd_divides_a_and_b a p).2
 unfold is_prime at c
 rcases c with ⟨_,kk⟩
@@ -1044,17 +1102,16 @@ cases kk
   cases d
   case intro w h hh hhhh=>
   have zz : zero.succ = 1 := by aesop
-  have eq:b*(pp*p+q*a)=p*(b*pp)+a*b*q := by ring
-  have eq2 : b*(r*p+s*a+1) = p*(b*r) + a*b*s + b := by ring
+  have eq:b*(pp*p)=p*(b*pp) := by ring
+  have eq2 : b*(s*a+1) = a*b*s + b := by ring
   rewrite [eq,eq2] at mmn
   rewrite [<-hhhh] at mmn
   apply divides_elim
   symm
   apply mmn
-  exists b*r+hh*s
+  exists hh*s
   ring
-  exists b*pp+hh*q
-  ring
+  exists b*pp
   }
 {
   case inr h =>
