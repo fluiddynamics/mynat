@@ -2,7 +2,7 @@ import mynat
 
 open MyNat
 
-namespace binom
+namespace binomial
 
 def frac (n:MyNat) := match n with
 | .zero => 1

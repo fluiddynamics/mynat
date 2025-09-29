@@ -94,7 +94,7 @@ rfl
   apply lt_le_succ.2
   exists m'
 
-theorem modeq_pow2 {a a' n:MyNat} : a ≡ a' -> binom.pow a n ≡ binom.pow a' n:= by
+theorem modeq_pow2 {a a' n:MyNat} : a ≡ a' -> binomial.pow a n ≡ binomial.pow a' n:= by
 intros h
 induction n with
 |zero =>
@@ -102,8 +102,8 @@ induction n with
   apply mod_refl
 |succ n' ih =>
   simp
-  rewrite [<-binom.pow]
-  rewrite [<-binom.pow]
+  rewrite [<-binomial.pow]
+  rewrite [<-binomial.pow]
   apply modeq_mul2
   apply h
   apply ih
@@ -196,35 +196,41 @@ have eq : m.gcd a = 1 := by
     exists cc+1
     ring_nf at *
     aesop
-have gl := gcd_linear a m
-rcases gl with ⟨p,q,r,s,eqn⟩
+have mne0 : m≠ 0 := by
+  unfold is_prime at b
+  intros m0
+  rewrite [m0] at b
+  rcases b with ⟨bb,_⟩
+  have bbb := lt_le_succ.1 bb
+  unfold le at bbb
+  rcases bbb with ⟨c,ccc⟩
+  rewrite [add_succ] at ccc
+  injection ccc
+have gl := gcd_linear a m mne0
+rcases gl with ⟨p,s,eqn⟩
 rewrite [eq] at eqn
 have mm := mod_minus m s ?_
 rcases mm with ⟨ss,h ⟩
-exists q+ss
-have q1 : p*m+q*a+a*ss = r*m+s*a+1+a*ss := by aesop
-have q2 : r * m + s * a + 1 + a * ss ≡ 1 := by
+exists ss
+have q1 : p*m+a*ss = s*a+1+a*ss := by aesop
+have q2 : s * a + 1 + a * ss ≡ 1 := by
   unfold modeq at h
   rcases mod_eq (s+ss) m with ⟨me1,me2 ⟩
   rewrite [h,<-zero0] at me2
   simp at me2
-  have qq : r * m + s * a + 1 + a * ss = 1+(s+ss)*a+m*r := by ring
+  have qq : s * a + 1 + a * ss = 1+(s+ss)*a := by ring
   rewrite [qq,<-me2]
   unfold modeq
-  rewrite [mod_add]
   have qq : me1*m*a=m*(me1*a) := by ring
   rewrite [qq,mod_add]
   rfl
   apply lt_le_succ.2
   rcases b with ⟨⟨⟨b111,b112⟩ ,b12⟩ ,b2⟩
   exists b111
-  apply lt_le_succ.2
-  rcases b with ⟨⟨⟨b111,b112⟩ ,b12⟩ ,b2⟩
-  exists b111
 rewrite [<-eqn] at q2
-have q3 : p*m+q*a+a*ss ≡ a*(q+ss) := by
+have q3 : p*m+a*ss ≡ a*ss := by
   unfold modeq
-  have z : p*m+q*a+a*ss = a*(q+ss)+m*p := by ring
+  have z : p*m+a*ss = a*ss+m*p := by ring
   rewrite [z,mod_add]
   rfl
   apply lt_le_succ.2
@@ -242,7 +248,7 @@ end modulo
 
 section modulo1
 
-open binom
+open binomial
 variable (p:MyNat)
 local infix:50 " ≡ " => modulo.modeq p
 

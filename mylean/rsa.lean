@@ -213,7 +213,7 @@ variable (eqp' : p' + 1 = p)
 variable (eqq' : q' + 1 = q)
 include eqp' eqq'
 
-theorem rsa a : forall k, binom.pow a (k*p'*q'+1) ≡pq a := by
+theorem rsa a : forall k, binomial.pow a (k*p'*q'+1) ≡pq a := by
 intros k
 apply (crt _ _ pp qp npq _ _).1
 constructor
