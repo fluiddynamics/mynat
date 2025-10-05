@@ -228,3 +228,137 @@ rewrite [mul_comm]
 apply pow_p_pred q a (k*p') qp q' ?_
 simp
 assumption
+
+end rsa
+
+structure linear where
+  a:MyNat
+  x:MyNat
+  b:MyNat
+  y:MyNat
+  c:MyNat
+  eq : a*x=b*y+c
+
+def divmod_aux (n m:MyNat) : MyNat×MyNat×MyNat:= match m with
+|zero => (0,n,0)
+|succ m' => match n with
+  | zero => (zero,zero,m')
+  | succ n' =>
+    let prev := divmod_aux n' m
+    match prev.2.2 with
+      | zero => (prev.1 + 1, zero, m')
+      | succ p' => (prev.1, prev.2.1 + 1, p')
+
+#eval divmod_aux 34 5
+#eval divmod_aux 0 0
+
+def aux1 (n m:MyNat) : m ≠ 0 -> let aux := divmod_aux n m; aux.2.1 + aux.2.2 + 1 = m := by
+intros a
+intros aux
+have eq : aux = divmod_aux n m := by rfl
+induction n with
+|zero =>
+  unfold divmod_aux at eq
+  simp at eq
+  split at eq
+  exfalso
+  apply a
+  simp
+  rewrite [eq]
+  simp
+| succ n' ih =>
+  generalize eq' : divmod_aux n' m = aux'
+  simp at ih
+  rewrite [eq'] at ih
+  unfold divmod_aux at eq
+  split at eq
+  simp at eq'
+  rewrite [<-succ_add_one] at ih
+  rewrite [succ_add] at ih
+  injection ih
+  case h_2 p' =>
+    simp at eq
+    split at eq
+    rewrite [eq]
+    simp
+    case h_2 p'' p'''=>
+      rewrite [eq]
+      simp
+      simp at eq'
+      rewrite [eq'] at p'''
+      rewrite [eq']
+      rewrite [p'''] at ih
+      simp at ih
+      rewrite [<-ih]
+      ring
+
+def divmod (n m:MyNat) : linear := let aux := divmod_aux n m
+  ⟨1,n,aux.1,m,aux.2.1,by
+  induction n with
+  |zero =>
+    simp
+    have eq : aux = divmod_aux zero m := by rfl
+    unfold divmod_aux at eq
+    simp at eq
+    split at eq
+    rewrite [eq]
+    rfl
+    rewrite [eq]
+    simp
+  |succ n' ih=>
+    simp
+    have eq : aux = divmod_aux n'.succ m := by rfl
+    unfold divmod_aux at eq
+    simp at eq
+    split at eq
+    rewrite [eq]
+    simp
+    split at eq
+    case h_1 heq x p'=>
+      generalize heq1 : heq.succ = m
+      simp at ih
+      generalize eqaux' : divmod_aux n' (heq+1) = aux'
+      rewrite [eqaux'] at ih
+      have z:aux'.1 + aux'.1*heq = aux'.1*m := by
+        rewrite [<-heq1]
+        simp
+      rewrite [z] at ih
+      rewrite [<-succ_add_one] at eqaux'
+      rewrite [heq1] at eq
+      rewrite [heq1] at eqaux'
+      rewrite [eqaux'] at eq
+      rewrite [eq]
+      simp
+      have aa := aux1 n' m ?_
+      simp at aa
+      rewrite [eqaux'] at aa
+      conv =>
+        rhs
+        arg 1
+        rewrite [<-aa]
+      rewrite [ih]
+      rewrite [heq1] at p'
+      rewrite [eqaux'] at p'
+      rewrite [p']
+      simp
+      ring
+      intros m0
+      rewrite [m0] at heq1
+      rewrite [<-zero0] at heq1
+      injection heq1
+    case h_2 x1 m' x3 x4 x5=>
+      generalize meq : m'.succ = m
+      rewrite [meq] at ih
+      rewrite [meq] at x5
+      rewrite [meq] at eq
+      generalize auxeq' : divmod_aux n' m = aux'
+      rewrite [auxeq'] at eq
+      simp at ih
+      rewrite [auxeq'] at ih
+      rewrite [eq]
+      simp
+      rewrite [ih]
+      ring
+  ⟩
+
+#eval divmod 8 9
