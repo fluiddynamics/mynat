@@ -231,13 +231,16 @@ assumption
 
 end rsa
 
+section computational_Rsa
+
 structure linear where
   a:MyNat
   x:MyNat
   b:MyNat
   y:MyNat
   c:MyNat
-  eq : a*x=b*y+c
+
+def linear_good (l:linear) := l.a*l.x=l.b*l.y+l.c
 
 def divmod_aux (n m:MyNat) : MyNat×MyNat×MyNat:= match m with
 |zero => (0,n,0)
@@ -293,72 +296,103 @@ induction n with
       ring
 
 def divmod (n m:MyNat) : linear := let aux := divmod_aux n m
-  ⟨1,n,aux.1,m,aux.2.1,by
+  ⟨1,n,aux.1,m,aux.2.1⟩
+
+theorem divmod_good n m: linear_good (divmod n m) := by
   induction n with
   |zero =>
+    unfold divmod
+    unfold linear_good
+    unfold divmod_aux
     simp
-    have eq : aux = divmod_aux zero m := by rfl
-    unfold divmod_aux at eq
-    simp at eq
-    split at eq
-    rewrite [eq]
-    rfl
-    rewrite [eq]
-    simp
+    split <;> simp
   |succ n' ih=>
+    generalize dmeq' : divmod n' m = dm'
+    generalize dmeq : divmod (n'.succ) m = dm
+    rewrite [dmeq'] at ih
+    unfold divmod at dmeq
+    unfold divmod_aux at dmeq
+    split at dmeq
+    simp at dmeq
+    rewrite [<-dmeq]
+    unfold linear_good
     simp
-    have eq : aux = divmod_aux n'.succ m := by rfl
-    unfold divmod_aux at eq
-    simp at eq
-    split at eq
-    rewrite [eq]
-    simp
-    split at eq
-    case h_1 heq x p'=>
-      generalize heq1 : heq.succ = m
+    split at dmeq
+    case h_1 heq =>
+      injection heq
+    case h_2 x p' xx p'' heq =>
+      injection heq with a_eq
+      rewrite [<-a_eq] at dmeq
+      generalize meq: p'.succ = m
+      rewrite [meq] at dmeq'
+      rewrite [meq] at dmeq
+      rewrite [<-dmeq]
+      unfold linear_good
+      simp
+      split
+      unfold divmod at dmeq'
+      generalize eqaux : divmod_aux n' m = aux
+      rewrite [eqaux] at dmeq'
+      simp at dmeq'
+      rewrite [<-dmeq'] at ih
+      unfold linear_good at ih
       simp at ih
-      generalize eqaux' : divmod_aux n' (heq+1) = aux'
-      rewrite [eqaux'] at ih
-      have z:aux'.1 + aux'.1*heq = aux'.1*m := by
-        rewrite [<-heq1]
+      simp
+      have aux1 := aux1 n' m ?_
+      {
+        rewrite [eqaux] at aux1
+        simp at aux1
+        case h_1.refine_2 heq =>
+        rewrite [eqaux] at heq
+        rewrite [heq] at aux1
+        simp at aux1
+        rewrite [ih]
+        conv =>
+          rhs
+          arg 1
+          rewrite [<-aux1]
+        ring_nf
+      }
+      {
+        unfold Ne
+        unfold Not
+        intros a
+        rewrite [a] at meq
+        injection meq
+      }
+      {
         simp
-      rewrite [z] at ih
-      rewrite [<-succ_add_one] at eqaux'
-      rewrite [heq1] at eq
-      rewrite [heq1] at eqaux'
-      rewrite [eqaux'] at eq
-      rewrite [eq]
-      simp
-      have aa := aux1 n' m ?_
-      simp at aa
-      rewrite [eqaux'] at aa
-      conv =>
-        rhs
-        arg 1
-        rewrite [<-aa]
-      rewrite [ih]
-      rewrite [heq1] at p'
-      rewrite [eqaux'] at p'
-      rewrite [p']
-      simp
-      ring
-      intros m0
-      rewrite [m0] at heq1
-      rewrite [<-zero0] at heq1
-      injection heq1
-    case h_2 x1 m' x3 x4 x5=>
-      generalize meq : m'.succ = m
-      rewrite [meq] at ih
-      rewrite [meq] at x5
-      rewrite [meq] at eq
-      generalize auxeq' : divmod_aux n' m = aux'
-      rewrite [auxeq'] at eq
-      simp at ih
-      rewrite [auxeq'] at ih
-      rewrite [eq]
-      simp
-      rewrite [ih]
-      ring
-  ⟩
+        generalize eqaux : divmod_aux n' m = aux
+        rewrite [<-dmeq'] at ih
+        unfold divmod at ih
+        rewrite [eqaux] at ih
+        unfold linear_good at ih
+        simp at ih
+        rewrite [ih]
+        ring_nf
+      }
 
 #eval divmod 8 9
+
+theorem divmod_prop n m : let dm := divmod n m; dm.a =1 ∧ dm.x = n ∧ dm.y = m := by
+simp
+unfold divmod
+simp
+
+def gcd (n m:MyNat) :Bool×linear :=
+let dm := divmod n m
+let c := dm.c
+match c with
+|zero => ⟨false,⟨1,m,0,n,m⟩ ⟩
+|succ c'=>
+  let ⟨gcdb, ⟨a,x,b,y,c⟩ ⟩:= gcd m (dm.c)
+  match gcdb with
+  |true => ⟨false, ⟨a+b*dm.b,m,b,n,c⟩⟩
+  |false =>  ⟨true,⟨0,n,0,m,c⟩⟩
+termination_by toNat m
+decreasing_by
+{
+
+}
+
+#eval! _root_.gcd 13 4
