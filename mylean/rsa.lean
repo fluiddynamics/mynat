@@ -374,25 +374,41 @@ theorem divmod_good n m: linear_good (divmod n m) := by
 
 #eval divmod 8 9
 
-theorem divmod_prop n m : let dm := divmod n m; dm.a =1 ∧ dm.x = n ∧ dm.y = m := by
-simp
-unfold divmod
-simp
-
-def gcd (n m:MyNat) :Bool×linear :=
-let dm := divmod n m
-let c := dm.c
-match c with
-|zero => ⟨false,⟨1,m,0,n,m⟩ ⟩
+def gcd (n m:MyNat) :Bool×linear := by
+generalize eq :m=mm
+match m with
+|zero => exact ⟨true,⟨1,n,0,m,n⟩ ⟩
 |succ c'=>
-  let ⟨gcdb, ⟨a,x,b,y,c⟩ ⟩:= gcd m (dm.c)
+  generalize dmeq : divmod n m = dm
+  rcases dm with ⟨_,_,q,_,r⟩
+  let ⟨gcdb, ⟨a,_,b,_,c⟩ ⟩:= gcd m r -- 停止性の証明で等式がいらないためlet
   match gcdb with
-  |true => ⟨false, ⟨a+b*dm.b,m,b,n,c⟩⟩
-  |false =>  ⟨true,⟨0,n,0,m,c⟩⟩
+  |true  => exact⟨false, ⟨a+b*q, m, b,     n, c⟩⟩ -- a*m=b*(n-q*m)+c
+  |false => exact⟨true,  ⟨a,     n, b+a*q, m, c⟩⟩  -- a*(n-q*m)=b*m+c
 termination_by toNat m
 decreasing_by
 {
-
+  apply lt_tonat
+  generalize dmeq1 : divmod n m = dm
+  rewrite [dmeq1] at dmeq
+  unfold divmod at dmeq1
+  generalize eqaux : divmod_aux n m = aux
+  rewrite [eqaux] at dmeq1
+  simp at dmeq1
+  have a1 := aux1 n m ?_
+  rewrite [eqaux] at a1
+  simp at a1
+  have z:aux.2.1 = r := by aesop
+  rewrite [eq]
+  rewrite [z] at a1
+  apply lt_le_succ.2
+  exists aux.2.2
+  simp
+  rewrite [<-a1]
+  ring
+  unfold Ne
+  intros a
+  rewrite [a] at eq
+  injection eq
 }
-
-#eval! _root_.gcd 13 4
+-- 等式が消えてしまうのを防ぐためにgeneralizeとかを使っている
