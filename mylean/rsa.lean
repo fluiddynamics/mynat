@@ -383,7 +383,7 @@ match m with
   rcases dm with ⟨_,_,q,_,r⟩
   let ⟨gcdb, ⟨a,_,b,_,c⟩ ⟩:= gcd m r -- 停止性の証明で等式がいらないためlet
   match gcdb with
-  |true  => exact⟨false, ⟨a+b*q, m, b,     n, c⟩⟩ -- a*m=b*(n-q*m)+c
+  |true  => exact⟨false, ⟨a+b*q, m, b,     n, c⟩⟩  -- a*m=b*(n-q*m)+c
   |false => exact⟨true,  ⟨a,     n, b+a*q, m, c⟩⟩  -- a*(n-q*m)=b*m+c
 termination_by toNat m
 decreasing_by
@@ -412,3 +412,129 @@ decreasing_by
   injection eq
 }
 -- 等式が消えてしまうのを防ぐためにgeneralizeとかを使っている
+
+#print _root_.gcd._unary
+
+theorem gcd_true : forall n m, let g := _root_.gcd n m; g.1 = true -> g.2.x = n ∧ g.2.y = m := by
+{
+  intros n m
+  generalize eqg : _root_.gcd n m = g
+  intros s t
+  have seq : s=g := by aesop
+  unfold _root_.gcd at eqg
+  split at eqg
+  simp at eqg
+  rewrite [seq]
+  rewrite [<-eqg]
+  simp
+  simp at eqg
+  split at eqg
+  aesop
+  rewrite [seq]
+  rewrite [<-eqg]
+  simp
+}
+
+theorem gcd_false : forall n m, let g := _root_.gcd n m; g.1 = false -> g.2.x = m ∧ g.2.y = n := by
+{
+  intros n m
+  generalize eqg : _root_.gcd n m = g
+  intros s t
+  have seq : s=g := by aesop
+  unfold _root_.gcd at eqg
+  split at eqg
+  aesop
+  simp at eqg
+  split at eqg
+  rewrite [seq]
+  rewrite [<-eqg]
+  simp
+  aesop
+}
+
+#check linear.casesOn
+
+theorem gcd_good : forall n m, linear_good (_root_.gcd n m).2 := by
+{
+  intros n m
+  fun_induction (_root_.gcd n m)
+  case case1 =>
+    simp
+    unfold linear_good
+    simp
+  case case2 n c' x ih1=>
+    simp
+    generalize eqm : c'+1=m
+    generalize eqdm : (divmod n m) = dm
+    generalize eqgcd : _root_.gcd m dm.c = gcd'
+    split
+    case h_1 gcdn heq =>
+      unfold linear_good
+      simp
+      simp at ih1
+      rewrite [eqm] at ih1
+      have ih11 := ih1 dm.1 dm.2 dm.3 dm.4 dm.5 ?_
+      rewrite [eqgcd] at ih11
+      unfold linear_good at ih11
+      have g1 := gcd_true m dm.c
+      simp at g1
+      rewrite [eqgcd] at g1
+      have g1 := g1 heq
+      rcases g1 with ⟨ g2,g3⟩
+      rewrite [g2] at ih11
+      rewrite [g3] at ih11
+      ring_nf
+      have dmg := divmod_good n m
+      unfold linear_good at dmg
+      unfold divmod at dmg
+      simp at dmg
+      have z : (divmod_aux n m).2.1 = dm.c := by
+        rewrite [<-eqdm]
+        unfold divmod
+        simp
+      rewrite [z] at dmg
+      have z : (divmod_aux n m).1 = dm.b := by
+        rewrite [<-eqdm]
+        unfold divmod
+        simp
+      rewrite [z] at dmg
+      rewrite [dmg]
+      rewrite [mul_dist]
+      rewrite [ih11]
+      ring_nf
+      rewrite [eqdm]
+      simp
+    case h_2 gcdb heq =>
+      unfold linear_good
+      simp
+      have gf := gcd_false m dm.c
+      simp at gf
+      rewrite [eqgcd] at gf
+      have heq := gf heq
+      rcases heq with ⟨ eq1,eq2⟩
+      simp at ih1
+      rewrite [eqm] at ih1
+      have ih1 := ih1 dm.1 dm.2 dm.3 dm.4 dm.5 ?_
+      rewrite [eqgcd] at ih1
+      unfold linear_good at ih1
+      have dmg := divmod_good n m
+      rewrite [eqdm] at dmg
+      unfold linear_good at dmg
+      unfold divmod at eqdm
+      simp at eqdm
+      have dm1 : 1=dm.a := by rw [<-eqdm]
+      have dm2 : n=dm.x := by rw [<-eqdm]
+      have dm3 : m=dm.y := by rw [<-eqdm]
+      rewrite [<-dm1] at dmg
+      rewrite [<-dm2] at dmg
+      rewrite [<-dm3] at dmg
+      simp at dmg
+      rewrite [dmg]
+      rewrite [eq1] at ih1
+      rewrite [mul_dist]
+      rewrite [ih1]
+      rewrite [eq2]
+      ring_nf
+      rewrite [eqdm]
+      simp
+}
