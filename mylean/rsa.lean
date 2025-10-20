@@ -298,6 +298,11 @@ induction n with
 def divmod (n m:MyNat) : linear := let aux := divmod_aux n m
   ⟨1,n,aux.1,m,aux.2.1⟩
 
+theorem divmod_eq n m : let dm := divmod n m;dm.3 = (divmod_aux n m).1 ∧ dm.5=(divmod_aux n m).2.1 := by
+simp
+unfold divmod
+simp
+
 theorem divmod_good n m: linear_good (divmod n m) := by
   induction n with
   |zero =>
@@ -374,6 +379,37 @@ theorem divmod_good n m: linear_good (divmod n m) := by
 
 #eval divmod 8 9
 
+theorem divmod1 n : divmod n 1 = ⟨1,n,n,1,0⟩ := by
+unfold divmod
+simp
+induction n with
+|zero =>
+  unfold divmod_aux
+  rewrite [<-zerosucc]
+  simp
+|succ n' ih=>
+  generalize eqaux' : divmod_aux n' 1 = aux'
+  rewrite [eqaux'] at ih
+  rcases ih with ⟨ih1,ih2⟩
+  have aux11:= aux1 n' 1 (by unfold Ne;intros a;injection a)
+  rewrite [eqaux'] at aux11
+  simp at aux11
+  rewrite [<-succ_add_one,<-zerosucc,succ_add] at aux11
+  injection aux11 with z
+  simp at z
+  have z1 := add_eq_zero z
+  rewrite [add_comm] at z
+  have z1 := add_eq_zero z
+  unfold divmod_aux
+  rewrite [<-zerosucc]
+  simp
+  rewrite [eqaux']
+  rewrite [z1]
+  rewrite [<-zero0]
+  simp
+  rewrite [ih1]
+  rfl
+
 def gcd (n m:MyNat) :Bool×linear := by
 generalize eq :m=mm
 match m with
@@ -383,8 +419,8 @@ match m with
   rcases dm with ⟨_,_,q,_,r⟩
   let ⟨gcdb, ⟨a,_,b,_,c⟩ ⟩:= gcd m r -- 停止性の証明で等式がいらないためlet
   match gcdb with
-  |true  => exact⟨false, ⟨a+b*q, m, b,     n, c⟩⟩  -- a*m=b*(n-q*m)+c
-  |false => exact⟨true,  ⟨a,     n, b+a*q, m, c⟩⟩  -- a*(n-q*m)=b*m+c
+  |true  => exact⟨false, ⟨a+b*q, m, b    , n, c⟩⟩  -- a*m=b*(n-q*m)+c
+  |false => exact⟨true,  ⟨a    , n, b+a*q, m, c⟩⟩  -- a*(n-q*m)=b*m+c
 termination_by toNat m
 decreasing_by
 {
@@ -537,4 +573,195 @@ theorem gcd_good : forall n m, linear_good (_root_.gcd n m).2 := by
       ring_nf
       rewrite [eqdm]
       simp
+}
+
+#eval (_root_.gcd 1 1).2
+#eval (_root_.gcd 1 0).1
+#eval (_root_.gcd 1 0).2
+#eval (_root_.gcd 1 2).2
+#eval (_root_.gcd 2 1).1
+#eval (_root_.gcd 2 1).2
+#eval (_root_.gcd 101 109).2
+#eval (_root_.gcd 144 89).2
+
+theorem gcd_bound n m : 2<n -> 2<m -> let g := _root_.gcd n m;
+    2*g.2.a < g.2.y ∧ 2*g.2.b < g.2.x := by
+intros a aa
+fun_induction (_root_.gcd n m)
+have aa := lt_le_succ.1 aa
+simp at aa
+rcases aa with ⟨w,h⟩
+rewrite [<-add_assoc] at h
+rewrite [<-succ_add_one] at h
+injection h
+case case2 n c' _ ih1 =>
+generalize eqm:c'.succ = m
+rewrite [eqm] at ih1
+simp only
+generalize eqdm : divmod n m = dm
+rewrite [eqm] at aa
+have ih1 := ih1 dm.1 dm.2 dm.3 dm.4 dm.5 (by rw [eqdm]) aa
+generalize eqr : dm.c = r
+rewrite [eqr] at ih1
+generalize eqgcd' : _root_.gcd m r = gcd'
+rewrite [eqgcd'] at ih1
+simp only at ih1
+cases r with
+|zero =>
+{
+  unfold _root_.gcd at eqgcd'
+  rewrite [<-eqgcd']
+  simp only
+  aesop
+}
+|succ r' => cases r' with
+|zero =>
+{
+  unfold _root_.gcd at eqgcd'
+  simp only at eqgcd'
+  have dm1 := divmod1 m
+  rewrite [zerosucc] at eqgcd'
+  rewrite [dm1] at eqgcd'
+  simp at eqgcd'
+  have z : _root_.gcd 1 0 = ⟨true,⟨1,1,0,0,1⟩⟩  := by
+    unfold _root_.gcd
+    split
+    rfl
+    case h_2 c' eq _ _ =>
+    injection eq
+  rewrite [z] at eqgcd'
+  simp at eqgcd'
+  rewrite [<-eqgcd']
+  simp only
+  ring_nf
+  constructor
+  apply aa
+  have zz := divmod_good n m
+  unfold linear_good at zz
+  rewrite [eqdm] at zz
+  unfold divmod at eqdm
+  simp at eqdm
+  rewrite [<-eqdm] at zz
+  simp at zz
+  rewrite [zz]
+  have x1 : (divmod_aux n m).2.1 = dm.c := by rw [<-eqdm]
+  have x2 : (divmod_aux n m).1 = dm.b := by rw [<-eqdm]
+  rewrite [x1,x2]
+  rcases (lt_le_succ.1 aa) with ⟨y1,y2 ⟩
+  simp at y2
+  rewrite [eqr]
+  apply lt_le_succ.2
+  simp
+  rcases (lt_le_succ.1 aa) with ⟨q1,q2⟩
+  rewrite [<-q2]
+  simp
+  exists dm.b+dm.b*q1
+  ring
+}
+|succ r'' => cases r'' with
+|zero =>
+{
+  generalize eqdm' : divmod m dm.c = dm'
+  generalize eqrr : dm'.c = rr
+  unfold _root_.gcd at eqgcd'
+  simp only at eqgcd'
+  rewrite [<-eqr] at eqgcd'
+  rewrite [eqdm'] at eqgcd'
+  rewrite [eqrr] at eqgcd'
+  cases rr with
+  |zero =>
+  {
+    unfold _root_.gcd at eqgcd'
+    simp only at eqgcd'
+    rewrite [<-eqgcd']
+    simp only
+    ring_nf
+    sorry -- 容易に埋められるはず
+  }
+  |succ rr'' =>
+    rewrite [<-eqrr] at eqgcd'
+    have z : dm'.c = 1 := by
+      have x := aux1 m dm.c (by rewrite [eqr];unfold Ne;intros a;injection a)
+      generalize eqaux : divmod_aux m dm.c = aux
+      rewrite [eqaux] at x;simp at x
+      rewrite [eqr] at x
+      rewrite [<-eqdm'] at eqrr
+      unfold divmod at eqrr
+      simp at eqrr
+      rewrite [eqaux] at eqrr
+      rewrite [eqrr] at x
+      simp at x
+      ring_nf at x
+      rewrite [add_assoc] at x
+      have x := add_elim x
+      have x := add_eq_zero x
+      rewrite [x] at eqrr
+      rewrite [<-eqdm']
+      unfold divmod
+      simp
+      rewrite [eqaux]
+      rewrite [eqrr]
+      ring
+    rewrite [z] at eqgcd'
+    rewrite [eqr] at eqgcd'
+    have x : _root_.gcd zero.succ.succ 1 = ⟨false,⟨1,1,0,2,1⟩ ⟩  := by
+      rewrite [<-zerosucc]
+      unfold _root_.gcd
+      simp only
+      have xx : divmod zero.succ.succ zero.succ = ⟨1,2,2,1,0⟩ := by rfl
+      rewrite [xx]
+      simp only
+      have xx : _root_.gcd zero.succ zero = ⟨true,⟨1,1,0,0,1⟩ ⟩ := by
+        unfold _root_.gcd
+        simp
+      rewrite [<-zero0]
+      rewrite [xx]
+      simp
+      ring_nf
+    rewrite [x] at eqgcd'
+    simp at eqgcd'
+    rewrite [<-eqgcd']
+    simp only
+    constructor
+    have zz := divmod_good n m
+    unfold linear_good at zz
+    unfold divmod at zz
+    simp only at zz
+    have deq := (divmod_eq n m)
+    rewrite [<-deq.1,<-deq.2] at zz
+    rewrite [eqdm] at zz
+    simp at zz
+    rewrite [zz]
+    rewrite [eqr]
+    have dmg' := divmod_good m dm.c
+    unfold linear_good at dmg'
+    simp at dmg'
+    unfold divmod at dmg'
+    simp at dmg'
+    have eq1 := divmod_eq m dm.c
+    simp at eq1
+    rewrite [eqdm'] at eq1
+    rewrite [<-eq1.1] at dmg'
+    rewrite [<-eq1.2] at dmg'
+    rewrite [dmg',z]
+    apply lt_le_succ.2
+    rewrite [eqr]
+    simp
+    ring_nf
+    rewrite [eqr] at zz
+    simp at zz
+    -- zzにおいて、mは0でないため、dm.b=0だとするとn=2ところが2<nで矛盾する
+
+    sorry
+    sorry
+}
+|succ r''' =>
+cases gcd'.1 with
+|true =>
+{
+  sorry
+}
+|false =>
+{
+  sorry
 }
