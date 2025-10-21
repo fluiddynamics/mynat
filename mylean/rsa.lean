@@ -844,6 +844,35 @@ cases gcd'1 with
   }
 }
 |false =>
-{
-  sorry
-}
+  simp only
+  have z:=gcd_false m dm.c (by rewrite [eqgcd'];assumption)
+  rewrite [eqgcd'] at z
+  rewrite [z.1] at ih1
+  constructor
+  {
+    rewrite [z.2] at ih1
+    apply ih1.1
+  }
+  {
+    have dmg := divmod_good n m
+    unfold linear_good at dmg
+    unfold divmod at dmg
+    simp only at dmg
+    rewrite [<-(divmod_eq n m).1] at dmg
+    rewrite [<-(divmod_eq n m).2] at dmg
+    rewrite [eqdm] at dmg
+    simp at dmg
+    rewrite [dmg]
+    rewrite [mul_dist]
+    rewrite [z.2] at ih1
+    apply lt_le_succ.2
+    have x1 := lt_le_succ.1 ih1.1
+    have x2 := lt_le_succ.1 ih1.2
+    simp at x1 x2
+    simp
+    rcases x1 with ⟨x1c,c1p ⟩
+    rcases x2 with ⟨x2c,c2p ⟩
+    rewrite [<-c1p,<-c2p]
+    exists dm.b+dm.b*x1c+x2c
+    ring
+  }
