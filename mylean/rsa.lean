@@ -676,7 +676,25 @@ cases r with
     rewrite [<-eqgcd']
     simp only
     ring_nf
-    sorry -- 容易に埋められるはず
+    constructor
+    apply aa
+    have z := divmod_good n m
+    unfold linear_good at z
+    unfold divmod at z
+    simp at z
+    rewrite [z]
+    rewrite [<-(divmod_eq n m).1]
+    rewrite [<-(divmod_eq n m).2]
+    rewrite [eqdm]
+    rewrite [eqr]
+    apply lt_le_succ.2
+    simp
+    have aa := lt_le_succ.1 aa
+    simp at aa
+    rcases aa with ⟨cc,ww⟩
+    rewrite [<-ww]
+    exists  1+dm.b*cc+dm.b
+    ring
   }
   |succ rr'' =>
     rewrite [<-eqrr] at eqgcd'
@@ -751,15 +769,79 @@ cases r with
     rewrite [eqr] at zz
     simp at zz
     -- zzにおいて、mは0でないため、dm.b=0だとするとn=2ところが2<nで矛盾する
-
-    sorry
-    sorry
+    generalize eqdmb : dm.b = dmb
+    cases dmb with
+    |zero =>
+      rewrite [eqdmb] at zz
+      simp at zz
+      rewrite [zz] at a
+      exfalso
+      apply a.2
+      rfl
+    |succ dmb' =>
+      simp
+      ring_nf
+      exists dmb'
+    have dmg := divmod_good m dm.c
+    unfold linear_good at dmg
+    unfold divmod at dmg
+    simp at dmg
+    rewrite [dmg]
+    rewrite [<-(divmod_eq m dm.c).1]
+    rewrite [<-(divmod_eq m dm.c).2]
+    rewrite [eqdm']
+    rewrite [eqr]
+    apply lt_le_succ.2
+    simp
+    exists 0
+    rewrite [z]
+    ring
 }
 |succ r''' =>
-cases gcd'.1 with
+have z:2<dm.c := by
+  {
+    rewrite [eqr]
+    apply lt_le_succ.2
+    exists r'''
+  }
+rewrite [eqr] at z
+rewrite [<-eqr] at eqgcd'
+have ih1 := ih1 z
+generalize eqgcd'1 : gcd'.1 = gcd'1
+cases gcd'1 with
 |true =>
 {
-  sorry
+  simp only
+  have z:=gcd_true m dm.c (by rewrite [eqgcd'];assumption)
+  rewrite [eqgcd'] at z
+  rewrite [z.1] at ih1
+  constructor
+  {
+    have dmg := divmod_good n m
+    unfold linear_good at dmg
+    unfold divmod at dmg
+    simp only at dmg
+    rewrite [<-(divmod_eq n m).1] at dmg
+    rewrite [<-(divmod_eq n m).2] at dmg
+    rewrite [eqdm] at dmg
+    simp at dmg
+    rewrite [dmg]
+    rewrite [mul_dist]
+    rewrite [z.2] at ih1
+    apply lt_le_succ.2
+    have x1 := lt_le_succ.1 ih1.1
+    have x2 := lt_le_succ.1 ih1.2
+    simp at x1 x2
+    simp
+    rcases x1 with ⟨x1c,c1p ⟩
+    rcases x2 with ⟨x2c,c2p ⟩
+    rewrite [<-c1p,<-c2p]
+    exists dm.b+dm.b*x2c+x1c
+    ring
+  }
+  {
+    apply ih1.2
+  }
 }
 |false =>
 {
