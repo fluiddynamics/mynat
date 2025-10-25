@@ -876,3 +876,81 @@ cases gcd'1 with
     exists dm.b+dm.b*x1c+x2c
     ring
   }
+
+def sub (n m:MyNat) := match n with
+| zero => 0
+| succ n' => match m with
+  | zero => n
+  | succ m' => sub n' m'
+
+#eval sub 10 0
+#eval sub 10 5
+#eval sub 5 6
+
+theorem sub_aa a : sub a a = 0 := by
+induction a with
+|zero =>
+  unfold sub
+  rfl
+|succ a' ih =>
+  unfold sub
+  simp
+  assumption
+
+theorem sub_aba {a b} : sub (a+b) b = a := by
+induction b with
+|zero =>
+  unfold sub
+  simp
+  { -- この括弧は不要ではないか
+  cases a with
+  |zero =>
+    simp
+  |succ a' =>
+    simp
+  }
+|succ a' ih=>
+  rewrite [succ_add]
+  unfold sub
+  simp
+  apply ih
+
+theorem sub_eq x y z : y<=x -> (x=y+z ↔ sub x y=z) := by
+intros a
+rcases a with ⟨w,h⟩
+rewrite [<-h]
+constructor
+intros a
+rewrite [add_abac.1 a] at *
+rewrite [add_comm]
+apply sub_aba
+intros a
+rewrite [add_comm] at a
+rewrite [sub_aba] at a
+rw [a]
+
+theorem good_rev a x b y c : a<=y -> b<=x ->
+  linear_good ⟨a,x,b,y,c⟩ -> linear_good ⟨sub x b,y,sub y a,x,c⟩ := by
+intros d e f
+unfold linear_good at f
+simp only at f
+unfold linear_good
+simp only
+rcases d with ⟨w1,h1⟩
+rcases e with ⟨w2,h2⟩
+rewrite [<-h1]
+rewrite [<-h2]
+rewrite [add_comm]
+rewrite [sub_aba]
+rewrite [add_comm]
+rewrite [sub_aba]
+rewrite [<-h1,<-h2] at f
+ring_nf at f
+rewrite [add_assoc] at f
+apply add_abac.1 at f
+ring_nf
+rewrite [add_assoc]
+apply add_abac.2
+rewrite [mul_comm]
+rewrite [f]
+ring
