@@ -584,7 +584,99 @@ theorem gcd_good : forall n m, linear_good (_root_.gcd n m).2 := by
 #eval (_root_.gcd 101 109).2
 #eval (_root_.gcd 144 89).2
 
-theorem gcd_bound n m : 2<n -> 2<m -> let g := _root_.gcd n m;
+theorem gcd_bound n m : 0<n -> 0<m -> let g := _root_.gcd n m;
+    g.2.a <= g.2.y ∧ g.2.b <= g.2.x := by
+intros a aa
+fun_induction (_root_.gcd n m)
+unfold lt at aa
+simp at aa
+case case2 n c' _ ih =>
+generalize meq : c'.succ = m
+rewrite [meq] at ih
+simp only
+generalize dmeq : divmod n m = dm
+rewrite [dmeq] at ih
+have ih := ih dm.a dm.x dm.b dm.y dm.c (by simp)
+have ih := ih (by rewrite [<-meq];apply aa)
+generalize ceq : dm.c = dmc
+cases dmc with
+|zero =>
+  generalize eqg' : _root_.gcd m zero = gcd'
+  unfold _root_.gcd at eqg'
+  rewrite [<-eqg']
+  simp
+  have a := lt_le_succ.1 a
+  unfold le at a
+  simp at a
+  apply a
+|succ dmc' =>
+  have z : 0<dm.c := by
+    apply lt_le_succ.2
+    simp
+    exists dmc'
+    rewrite [ceq]
+    simp
+  have ih := ih z
+  generalize eqg' : _root_.gcd m dm.c = gcd'
+  rewrite [eqg'] at ih
+  simp only at ih
+  rewrite [<-ceq]
+  rewrite [eqg']
+  split
+  {
+  case h_1 heq =>
+  have gg := gcd_true m dm.c
+  rewrite [eqg'] at gg
+  simp only at gg
+  have gg := gg heq
+  rewrite [gg.1] at ih
+  rewrite [gg.2] at ih
+  simp only
+  constructor
+  have q := divmod_good n m
+  unfold linear_good at q
+  unfold divmod at q
+  simp at q
+  have qq:=divmod_eq n m
+  rewrite [dmeq] at qq
+  simp only at qq
+  rewrite [<-qq.1,<-qq.2] at q
+  rewrite [q]
+  rcases ih with ⟨⟨w1,h1⟩ ,⟨w2,h2⟩ ⟩
+  rewrite [<-h2,<-h1]
+  unfold le
+  exists dm.b*w2+w1
+  ring
+  apply ih.2
+  }
+  {
+  case h_2 heq =>
+  simp only
+  have gg := gcd_false m dm.c
+  rewrite [eqg'] at gg
+  simp only at gg
+  have gg := gg heq
+  rewrite [gg.1] at ih
+  rewrite [gg.2] at ih
+  constructor
+  apply ih.1
+  have q := divmod_good n m
+  unfold linear_good at q
+  unfold divmod at q
+  simp at q
+  have qq:=divmod_eq n m
+  rewrite [dmeq] at qq
+  simp only at qq
+  rewrite [<-qq.1,<-qq.2] at q
+  rewrite [q]
+  rcases ih with ⟨⟨w1,h1⟩ ,⟨w2,h2⟩ ⟩
+  rewrite [<-h2,<-h1]
+  unfold le
+  exists dm.b*w1+w2
+  ring
+  }
+
+theorem gcd_bound2 n m : 2<n -> 2<m -> let g := _root_.gcd n m;
     2*g.2.a < g.2.y ∧ 2*g.2.b < g.2.x := by
 intros a aa
 fun_induction (_root_.gcd n m)
@@ -954,3 +1046,152 @@ apply add_abac.2
 rewrite [mul_comm]
 rewrite [f]
 ring
+
+def get_inv n m:=
+  let g := _root_.gcd n m;
+  match g.1 with
+  | true => g.2
+  | false =>
+    let l := g.2; ⟨sub l.x l.b,l.y,sub l.y l.a,l.x,l.c⟩
+
+theorem inv_eq n m : let i := get_inv n m;
+  i.x = n ∧ i.y = m ∧ i.c = (_root_.gcd n m).2.c := by
+generalize eqi : get_inv n m = i
+simp only
+unfold get_inv at eqi
+generalize eqg : _root_.gcd n m = g
+rewrite [eqg] at eqi
+simp only at eqi
+split at eqi
+{
+case h_1 heq =>
+  have gt := gcd_true n m
+  rewrite [eqg] at gt
+  simp only at gt
+  have gt:= gt heq
+  rewrite [eqi] at gt
+  constructor
+  apply gt.1
+  constructor
+  apply gt.2
+  rewrite [eqi]
+  rfl
+}
+{
+  case h_2 heq =>
+  have gf := gcd_false n m
+  rewrite [eqg] at gf
+  simp only at gf
+  have gf := gf heq
+  rewrite [<-eqi]
+  simp only
+  constructor
+  apply gf.2
+  constructor
+  apply gf.1
+  exact trivial
+}
+
+theorem inv_good n m: 0<n -> 0<m -> let i := get_inv n m;
+  linear_good i := by
+intros a b
+generalize eqi : get_inv n m = i
+simp only
+unfold get_inv at eqi
+generalize eqg : _root_.gcd n m = g
+rewrite [eqg] at eqi
+simp only at eqi
+have gg := gcd_good n m
+rewrite [eqg] at gg
+split at eqi
+{
+  case h_1 heq =>
+  rewrite [<-eqi]
+  apply gg
+}
+{
+  case h_2 heq =>
+  rewrite [<-eqi]
+  have gb := gcd_bound n m a b
+  rewrite [eqg] at gb
+  simp only at gb
+  apply good_rev
+  apply gb.1
+  apply gb.2
+  apply gg
+}
+
+structure RsaKeyData where
+  p:MyNat
+  q:MyNat
+  pp : is_prime p
+  qp : is_prime q
+  e:MyNat
+  phi : (get_inv e (sub p 1*sub q 1)).c = 1
+  p_ne_q : p ≠ q
+  epos : 0<e
+
+structure PublicKey where
+  n : MyNat
+  e : MyNat
+  deriving Repr
+
+structure PrivateKey where
+  n : MyNat
+  d : MyNat
+  deriving Repr
+
+def mkPublicKey (data : RsaKeyData) : PublicKey where
+  n := data.p * data.q
+  e := data.e
+
+def mkPrivateKey (data : RsaKeyData) : PrivateKey where
+  n := data.p * data.q
+  d := (get_inv data.e ((sub data.p 1) * (sub data.q 1))).a
+
+def encrypt (pubKey : PublicKey) (message : MyNat) : MyNat :=
+  binomial.pow message pubKey.e
+
+def decrypt (privKey : PrivateKey) (cipher : MyNat) : MyNat :=
+  binomial.pow cipher privKey.d
+
+theorem rsa_valid data orig:
+  let pub := mkPublicKey data;
+  let priv := mkPrivateKey data;
+  let enc := encrypt pub orig;
+  modulo.modeq pub.n (decrypt priv enc) orig := by
+rcases data with ⟨p,q,pp,qp,e,phi,pneq,epos⟩
+simp only
+unfold mkPublicKey
+simp only
+unfold encrypt
+simp only
+unfold mkPrivateKey
+simp only
+unfold decrypt
+simp only
+rewrite [<-binomial.pow2]
+generalize eqφ : (sub p 1 * sub q 1) = φ
+generalize eqg : (get_inv e φ) = g
+have gg := inv_good e φ epos ?_
+rewrite [eqg] at gg
+simp only at gg
+have ie := inv_eq e φ
+rewrite [eqg] at ie
+simp only at ie
+unfold linear_good at gg
+rewrite [ie.1] at gg
+rewrite [@mul_comm e _]
+rewrite [gg]
+rewrite [eqφ,eqg] at phi
+rewrite [phi]
+rewrite [ie.2.1]
+rewrite [<-eqφ]
+have ro := rsa p q pp qp pneq (sub p 1) (sub q 1) ?_ ?_ orig g.b
+ring_nf
+ring_nf at ro
+apply ro
+-- sub_eqと素数は2以上ということを使えば証明できる
+sorry
+sorry
+sorry
